@@ -1,0 +1,98 @@
+{
+  "id": "001",
+  "name": "Spaghetti Carbonara",
+  "description": "Classic Italian pasta with creamy egg sauce and crispy pancetta",
+  "mainPhotoUri": null,
+  "ingredients": [
+    {
+      "name": "spaghetti",
+      "quantity": "400g",
+      "notes": null
+    },
+    {
+      "name": "pancetta or guanciale",
+      "quantity": "200g",
+      "notes": "cut into small cubes"
+    },
+    {
+      "name": "eggs",
+      "quantity": "4 large",
+      "notes": null
+    },
+    {
+      "name": "Pecorino Romano cheese",
+      "quantity": "100g",
+      "notes": "grated"
+    },
+    {
+      "name": "black pepper",
+      "quantity": "to taste",
+      "notes": null
+    },
+    {
+      "name": "salt",
+      "quantity": "to taste",
+      "notes": null
+    }
+  ],
+  "steps": [
+    {
+      "stepNumber": 1,
+      "instruction": "Bring a large pot of salted water to boil and cook spaghetti according to package directions.",
+      "durationMinutes": 10,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 2,
+      "instruction": "While pasta cooks, cut pancetta into small cubes and fry in a large pan until crispy.",
+      "durationMinutes": 5,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 3,
+      "instruction": "In a bowl, whisk together eggs, grated cheese, and generous black pepper.",
+      "durationMinutes": 2,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 4,
+      "instruction": "Reserve 1 cup of pasta water, then drain the spaghetti.",
+      "durationMinutes": 1,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 5,
+      "instruction": "Remove pan from heat, add drained pasta to the pancetta.",
+      "durationMinutes": 1,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 6,
+      "instruction": "Quickly pour in the egg mixture, tossing constantly. Add pasta water to create a creamy sauce.",
+      "durationMinutes": 2,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 7,
+      "instruction": "Serve immediately with extra cheese and black pepper.",
+      "durationMinutes": 1,
+      "mediaItems": [],
+      "tips": null
+    }
+  ],
+  "cookingTime": 20,
+  "prepTime": 10,
+  "servings": 4,
+  "difficulty": "MEDIUM",
+  "categories": ["ITALIAN", "LUNCH", "DINNER"],
+  "tags": ["pasta", "italian", "classic"],
+  "createdAt": 1704067200000,
+  "updatedAt": 1704067200000,
+  "isCustom": false
+}

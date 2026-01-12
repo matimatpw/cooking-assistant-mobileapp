@@ -8,14 +8,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
@@ -45,12 +49,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.cookingassistant.R
+import com.example.cookingassistant.model.MediaType
 import com.example.cookingassistant.model.Recipe
 import com.example.cookingassistant.viewmodel.RecipeViewModel
 import com.example.cookingassistant.voice.VoiceCommandManager
@@ -87,7 +96,7 @@ fun CookingStepScreen(
     // Pager state for swipe navigation
     val pagerState = rememberPagerState(
         initialPage = currentStepIndex,
-        pageCount = { recipe.instructions.size }
+        pageCount = { recipe.steps.size }
     )
 
     // Permission launcher
@@ -174,7 +183,7 @@ fun CookingStepScreen(
                     Column {
                         Text(recipe.name)
                         Text(
-                            text = stringResource(R.string.step_x_of_y, currentStepIndex + 1, recipe.instructions.size),
+                            text = stringResource(R.string.step_x_of_y, currentStepIndex + 1, recipe.steps.size),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -244,16 +253,15 @@ fun CookingStepScreen(
                     .weight(1f)
             ) { page ->
                 CookingStepContent(
-                    stepNumber = page + 1,
-                    totalSteps = recipe.instructions.size,
-                    instruction = recipe.instructions[page]
+                    step = recipe.steps[page],
+                    totalSteps = recipe.steps.size
                 )
             }
 
             // Navigation hints
             NavigationHints(
                 currentStep = currentStepIndex,
-                totalSteps = recipe.instructions.size
+                totalSteps = recipe.steps.size
             )
         }
     }
@@ -264,9 +272,8 @@ fun CookingStepScreen(
  */
 @Composable
 fun CookingStepContent(
-    stepNumber: Int,
-    totalSteps: Int,
-    instruction: String
+    step: com.example.cookingassistant.model.RecipeStep,
+    totalSteps: Int
 ) {
     Card(
         modifier = Modifier
@@ -274,40 +281,226 @@ fun CookingStepContent(
             .padding(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp),
-            contentAlignment = Alignment.Center
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+            item {
                 // Step number badge
                 Surface(
                     color = MaterialTheme.colorScheme.primary,
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Text(
-                        text = stringResource(R.string.step_number, stepNumber),
+                        text = stringResource(R.string.step_number, step.stepNumber),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(32.dp))
+            // Media items (photos/videos)
+            if (step.mediaItems.isNotEmpty()) {
+                item {
+                    StepMediaGallery(mediaItems = step.mediaItems)
+                }
+            }
 
+            item {
                 // Instruction text
                 Text(
-                    text = instruction,
+                    text = step.instruction,
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
+
+            // Show duration if available
+            step.durationMinutes?.let { duration ->
+                item {
+                    Text(
+                        text = "⏱️ ${duration} min",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+
+            // Show tips if available
+            step.tips?.let { tips ->
+                item {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "💡 ",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = tips,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Start,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Displays media items (photos/videos) for a cooking step
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StepMediaGallery(mediaItems: List<com.example.cookingassistant.model.StepMedia>) {
+    if (mediaItems.size == 1) {
+        // Single media item - display directly
+        StepMediaItem(media = mediaItems[0])
+    } else {
+        // Multiple media items - use pager
+        val mediaPagerState = rememberPagerState(pageCount = { mediaItems.size })
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            HorizontalPager(
+                state = mediaPagerState,
+                modifier = Modifier.fillMaxWidth()
+            ) { page ->
+                StepMediaItem(media = mediaItems[page])
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Page indicators
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                repeat(mediaItems.size) { index ->
+                    val color = if (mediaPagerState.currentPage == index) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .then(
+                                Modifier.then(
+                                    Modifier.padding(0.dp)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = color,
+                            modifier = Modifier.size(8.dp)
+                        ) {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Displays a single media item (photo or video)
+ */
+@Composable
+fun StepMediaItem(media: com.example.cookingassistant.model.StepMedia) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        when (media.type) {
+            MediaType.PHOTO -> {
+                AsyncImage(
+                    model = media.uri,
+                    contentDescription = media.caption,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(4f / 3f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            MediaType.VIDEO -> {
+                // For videos, display thumbnail if available, otherwise show video icon
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(4f / 3f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (media.thumbnailUri != null) {
+                        AsyncImage(
+                            model = media.thumbnailUri,
+                            contentDescription = media.caption,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Fallback: try to load video directly with Coil
+                        AsyncImage(
+                            model = media.uri,
+                            contentDescription = media.caption,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    // Video play indicator overlay
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.5f),
+                        shape = CircleShape,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = stringResource(R.string.play_video),
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Caption if available
+        media.caption?.let { caption ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = caption,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
     }
 }

@@ -1,0 +1,35 @@
+{
+  "id": "004",
+  "name": "Greek Salad",
+  "description": "Fresh and healthy Mediterranean salad with feta cheese and olives",
+  "mainPhotoUri": null,
+  "ingredients": [
+    {"name": "tomatoes", "quantity": "4", "notes": "cut into wedges"},
+    {"name": "cucumber", "quantity": "1", "notes": "sliced"},
+    {"name": "red onion", "quantity": "1", "notes": "thinly sliced"},
+    {"name": "green bell pepper", "quantity": "1", "notes": "sliced"},
+    {"name": "feta cheese", "quantity": "200g", "notes": "cubed"},
+    {"name": "Kalamata olives", "quantity": "1/2 cup", "notes": null},
+    {"name": "olive oil", "quantity": "3 tbsp", "notes": null},
+    {"name": "red wine vinegar", "quantity": "1 tbsp", "notes": null},
+    {"name": "dried oregano", "quantity": "1 tsp", "notes": null},
+    {"name": "salt and pepper", "quantity": "to taste", "notes": null}
+  ],
+  "steps": [
+    {"stepNumber": 1, "instruction": "Wash and prepare all vegetables as indicated.", "durationMinutes": 5, "mediaItems": [], "tips": null},
+    {"stepNumber": 2, "instruction": "In a large bowl, combine tomatoes, cucumber, onion, and bell pepper.", "durationMinutes": 2, "mediaItems": [], "tips": null},
+    {"stepNumber": 3, "instruction": "In a small bowl, whisk together olive oil, vinegar, oregano, salt, and pepper.", "durationMinutes": 2, "mediaItems": [], "tips": null},
+    {"stepNumber": 4, "instruction": "Pour dressing over the vegetables and toss gently.", "durationMinutes": 1, "mediaItems": [], "tips": null},
+    {"stepNumber": 5, "instruction": "Top with feta cheese and olives.", "durationMinutes": 1, "mediaItems": [], "tips": null},
+    {"stepNumber": 6, "instruction": "Serve immediately or refrigerate for up to 2 hours before serving.", "durationMinutes": 1, "mediaItems": [], "tips": null}
+  ],
+  "cookingTime": 15,
+  "prepTime": 10,
+  "servings": 4,
+  "difficulty": "EASY",
+  "categories": ["GREEK", "LUNCH", "VEGETARIAN", "QUICK_MEAL"],
+  "tags": ["salad", "greek", "healthy", "vegetarian"],
+  "createdAt": 1704067200000,
+  "updatedAt": 1704067200000,
+  "isCustom": false
+}

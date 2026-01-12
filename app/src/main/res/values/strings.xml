@@ -16,6 +16,7 @@
     <string name="ingredients">Ingredients</string>
     <string name="instructions">Instructions</string>
     <string name="minutes">%1$d minutes</string>
+    <string name="play_video">Play video</string>
 
     <!-- Voice Control -->
     <string name="listening">Listening…</string>

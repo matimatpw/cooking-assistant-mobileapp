@@ -1,0 +1,115 @@
+{
+  "id": "002",
+  "name": "Chicken Stir Fry",
+  "description": "Quick and healthy Asian-inspired stir fry with chicken and vegetables",
+  "mainPhotoUri": null,
+  "ingredients": [
+    {
+      "name": "chicken breast",
+      "quantity": "500g",
+      "notes": "sliced"
+    },
+    {
+      "name": "bell peppers",
+      "quantity": "2",
+      "notes": "sliced"
+    },
+    {
+      "name": "onion",
+      "quantity": "1",
+      "notes": "sliced"
+    },
+    {
+      "name": "garlic",
+      "quantity": "3 cloves",
+      "notes": "minced"
+    },
+    {
+      "name": "soy sauce",
+      "quantity": "3 tbsp",
+      "notes": null
+    },
+    {
+      "name": "vegetable oil",
+      "quantity": "2 tbsp",
+      "notes": null
+    },
+    {
+      "name": "cornstarch",
+      "quantity": "1 tbsp",
+      "notes": null
+    },
+    {
+      "name": "cooked rice",
+      "quantity": "for serving",
+      "notes": null
+    }
+  ],
+  "steps": [
+    {
+      "stepNumber": 1,
+      "instruction": "Mix chicken with 1 tbsp soy sauce and cornstarch. Let marinate for 10 minutes.",
+      "durationMinutes": 10,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 2,
+      "instruction": "Heat 1 tbsp oil in a wok or large pan over high heat.",
+      "durationMinutes": 2,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 3,
+      "instruction": "Add chicken and stir-fry until golden brown, about 5 minutes. Remove and set aside.",
+      "durationMinutes": 5,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 4,
+      "instruction": "Add remaining oil to the pan. Stir-fry garlic for 30 seconds.",
+      "durationMinutes": 1,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 5,
+      "instruction": "Add peppers and onion, stir-fry for 3-4 minutes until slightly softened.",
+      "durationMinutes": 4,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 6,
+      "instruction": "Return chicken to pan, add remaining soy sauce.",
+      "durationMinutes": 1,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 7,
+      "instruction": "Toss everything together for 1-2 minutes.",
+      "durationMinutes": 2,
+      "mediaItems": [],
+      "tips": null
+    },
+    {
+      "stepNumber": 8,
+      "instruction": "Serve hot over cooked rice.",
+      "durationMinutes": null,
+      "mediaItems": [],
+      "tips": null
+    }
+  ],
+  "cookingTime": 25,
+  "prepTime": 15,
+  "servings": 4,
+  "difficulty": "EASY",
+  "categories": ["ASIAN", "DINNER", "QUICK_MEAL"],
+  "tags": ["chicken", "stir-fry", "asian", "quick"],
+  "createdAt": 1704067200000,
+  "updatedAt": 1704067200000,
+  "isCustom": false
+}

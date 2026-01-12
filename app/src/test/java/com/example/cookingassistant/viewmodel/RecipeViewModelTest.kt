@@ -42,7 +42,7 @@ class RecipeViewModelTest {
 
     @Test
     fun get_recipe_by_id_returns_correct_recipe() {
-        val recipe = viewModel.getRecipeById(1)
+        val recipe = viewModel.getRecipeById("001")
 
         assertThat(recipe).isNotNull
         assertThat(recipe?.name).isEqualTo("Spaghetti Carbonara")
@@ -50,14 +50,14 @@ class RecipeViewModelTest {
 
     @Test
     fun get_recipe_by_id_returns_null_for_nonexistent_id() {
-        val recipe = viewModel.getRecipeById(999)
+        val recipe = viewModel.getRecipeById("999")
 
         assertThat(recipe).isNull()
     }
 
     @Test
     fun start_cooking_mode_sets_active_recipe_and_resets_step() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
 
         viewModel.startCookingMode(recipe)
 
@@ -67,7 +67,7 @@ class RecipeViewModelTest {
 
     @Test
     fun next_step_increments_step_index() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
 
         val result = viewModel.nextStep()
@@ -78,11 +78,11 @@ class RecipeViewModelTest {
 
     @Test
     fun next_step_returns_false_at_last_step() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
 
         // Move to last step
-        val lastStepIndex = recipe.instructions.size - 1
+        val lastStepIndex = recipe.steps.size - 1
         viewModel.goToStep(lastStepIndex)
 
         val result = viewModel.nextStep()
@@ -93,7 +93,7 @@ class RecipeViewModelTest {
 
     @Test
     fun previous_step_decrements_step_index() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
         viewModel.nextStep() // Move to step 1
 
@@ -105,7 +105,7 @@ class RecipeViewModelTest {
 
     @Test
     fun previous_step_returns_false_at_first_step() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
 
         val result = viewModel.previousStep()
@@ -116,7 +116,7 @@ class RecipeViewModelTest {
 
     @Test
     fun go_to_step_sets_correct_step_index() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
 
         viewModel.goToStep(3)
@@ -126,7 +126,7 @@ class RecipeViewModelTest {
 
     @Test
     fun go_to_step_ignores_invalid_index() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
 
         viewModel.goToStep(999)
@@ -136,7 +136,7 @@ class RecipeViewModelTest {
 
     @Test
     fun reset_to_first_step_returns_to_beginning() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
         viewModel.goToStep(3)
 
@@ -147,7 +147,7 @@ class RecipeViewModelTest {
 
     @Test
     fun process_voice_command_next_advances_step() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
 
         viewModel.processVoiceCommand(VoiceCommand.NEXT)
@@ -157,7 +157,7 @@ class RecipeViewModelTest {
 
     @Test
     fun process_voice_command_previous_goes_back() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
         viewModel.nextStep()
 
@@ -168,7 +168,7 @@ class RecipeViewModelTest {
 
     @Test
     fun process_voice_command_start_returns_to_first_step() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
         viewModel.goToStep(3)
 
@@ -179,7 +179,7 @@ class RecipeViewModelTest {
 
     @Test
     fun process_voice_command_repeat_stays_on_current_step() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
         viewModel.goToStep(2)
 
@@ -190,7 +190,7 @@ class RecipeViewModelTest {
 
     @Test
     fun exit_cooking_mode_clears_active_recipe() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
 
         viewModel.exitCookingMode()
@@ -201,7 +201,7 @@ class RecipeViewModelTest {
 
     @Test
     fun navigation_through_complete_recipe_flow() {
-        val recipe = viewModel.getRecipeById(1)!!
+        val recipe = viewModel.getRecipeById("001")!!
         viewModel.startCookingMode(recipe)
 
         // Start at step 0
