@@ -5,11 +5,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.cookingassistant.R
 import com.example.cookingassistant.model.Recipe
 
 /**
@@ -20,7 +23,8 @@ import com.example.cookingassistant.model.Recipe
 @Composable
 fun RecipeDetailScreen(
     recipe: Recipe,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onStartCooking: (Int) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -30,7 +34,7 @@ fun RecipeDetailScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -39,6 +43,18 @@ fun RecipeDetailScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { onStartCooking(recipe.id) },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = stringResource(R.string.start_cooking)
+                    )
+                },
+                text = { Text(stringResource(R.string.start_cooking)) }
             )
         }
     ) { padding ->
@@ -56,7 +72,7 @@ fun RecipeDetailScreen(
                 shape = MaterialTheme.shapes.small
             ) {
                 Text(
-                    text = "⏱️ ${recipe.cookingTime} minutes",
+                    text = "⏱️ " + stringResource(R.string.minutes, recipe.cookingTime),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
@@ -67,7 +83,7 @@ fun RecipeDetailScreen(
 
             // Ingredients section
             Text(
-                text = "Ingredients",
+                text = stringResource(R.string.ingredients),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -97,7 +113,7 @@ fun RecipeDetailScreen(
 
             // Instructions section
             Text(
-                text = "Instructions",
+                text = stringResource(R.string.instructions),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary

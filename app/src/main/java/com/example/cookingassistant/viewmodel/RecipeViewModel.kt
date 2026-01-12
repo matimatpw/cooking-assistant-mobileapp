@@ -2,12 +2,13 @@ package com.example.cookingassistant.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.example.cookingassistant.model.Recipe
+import com.example.cookingassistant.voice.VoiceCommand
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * ViewModel for managing recipe data
+ * ViewModel for managing recipe data and step navigation
  * Follows MVVM pattern - exposes state via StateFlow, no UI references
  */
 class RecipeViewModel : ViewModel() {
@@ -17,6 +18,14 @@ class RecipeViewModel : ViewModel() {
 
     // Public immutable state - UI observes this
     val recipes: StateFlow<List<Recipe>> = _recipes.asStateFlow()
+
+    // Current step index for cooking mode
+    private val _currentStepIndex = MutableStateFlow(0)
+    val currentStepIndex: StateFlow<Int> = _currentStepIndex.asStateFlow()
+
+    // Currently active recipe in cooking mode
+    private val _activeRecipe = MutableStateFlow<Recipe?>(null)
+    val activeRecipe: StateFlow<Recipe?> = _activeRecipe.asStateFlow()
 
     init {
         // Load hardcoded recipes when ViewModel is created
@@ -160,5 +169,90 @@ class RecipeViewModel : ViewModel() {
      */
     fun getRecipeById(id: Int): Recipe? {
         return _recipes.value.find { it.id == id }
+    }
+
+    /**
+     * Start cooking mode for a recipe
+     * @param recipe The recipe to start cooking
+     */
+    fun startCookingMode(recipe: Recipe) {
+        _activeRecipe.value = recipe
+        _currentStepIndex.value = 0
+    }
+
+    /**
+     * Navigate to the next step
+     * @return true if navigation successful, false if already at last step
+     */
+    fun nextStep(): Boolean {
+        val recipe = _activeRecipe.value ?: return false
+        val currentIndex = _currentStepIndex.value
+        val maxIndex = recipe.instructions.size - 1
+
+        return if (currentIndex < maxIndex) {
+            _currentStepIndex.value = currentIndex + 1
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Navigate to the previous step
+     * @return true if navigation successful, false if already at first step
+     */
+    fun previousStep(): Boolean {
+        val currentIndex = _currentStepIndex.value
+
+        return if (currentIndex > 0) {
+            _currentStepIndex.value = currentIndex - 1
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Go to a specific step
+     * @param stepIndex The step index to navigate to
+     */
+    fun goToStep(stepIndex: Int) {
+        val recipe = _activeRecipe.value ?: return
+        val maxIndex = recipe.instructions.size - 1
+
+        if (stepIndex in 0..maxIndex) {
+            _currentStepIndex.value = stepIndex
+        }
+    }
+
+    /**
+     * Reset to first step
+     */
+    fun resetToFirstStep() {
+        _currentStepIndex.value = 0
+    }
+
+    /**
+     * Process voice command
+     * @param command The voice command to process
+     */
+    fun processVoiceCommand(command: VoiceCommand) {
+        when (command) {
+            VoiceCommand.NEXT -> nextStep()
+            VoiceCommand.PREVIOUS -> previousStep()
+            VoiceCommand.REPEAT -> {
+                // Repeat is handled by staying on current step
+                // Could potentially trigger TTS to read current step again
+            }
+            VoiceCommand.START -> resetToFirstStep()
+        }
+    }
+
+    /**
+     * Exit cooking mode
+     */
+    fun exitCookingMode() {
+        _activeRecipe.value = null
+        _currentStepIndex.value = 0
     }
 }

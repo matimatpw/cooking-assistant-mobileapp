@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.cookingassistant.ui.theme.CookingStepScreen
 import com.example.cookingassistant.ui.theme.RecipeDetailScreen
 import com.example.cookingassistant.ui.theme.RecipeListScreen
 import com.example.cookingassistant.viewmodel.RecipeViewModel
@@ -19,6 +20,9 @@ sealed class Screen(val route: String) {
     object RecipeList : Screen("recipe_list")
     object RecipeDetail : Screen("recipe_detail/{recipeId}") {
         fun createRoute(recipeId: Int) = "recipe_detail/$recipeId"
+    }
+    object CookingStep : Screen("cooking_step/{recipeId}") {
+        fun createRoute(recipeId: Int) = "cooking_step/$recipeId"
     }
 }
 
@@ -69,6 +73,38 @@ fun CookingAssistantNavigation(navController: NavHostController) {
                     recipe = it,
                     onNavigateBack = {
                         // Navigate back to list screen
+                        navController.popBackStack()
+                    },
+                    onStartCooking = { recipeId ->
+                        // Navigate to cooking step screen
+                        navController.navigate(Screen.CookingStep.createRoute(recipeId))
+                    }
+                )
+            }
+        }
+
+        // Cooking step screen
+        composable(
+            route = Screen.CookingStep.route,
+            arguments = listOf(
+                navArgument("recipeId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            // Extract recipe ID from navigation arguments
+            val recipeId = backStackEntry.arguments?.getInt("recipeId")
+
+            // Get recipe from ViewModel
+            val recipe = recipeId?.let { viewModel.getRecipeById(it) }
+
+            // Display cooking step screen if recipe found
+            recipe?.let {
+                CookingStepScreen(
+                    recipe = it,
+                    viewModel = viewModel,
+                    onNavigateBack = {
+                        // Navigate back to detail screen
                         navController.popBackStack()
                     }
                 )

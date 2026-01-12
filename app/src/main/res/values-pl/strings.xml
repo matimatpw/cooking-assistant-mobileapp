@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">Asystent Kuchenny</string>
+
+    <!-- Voice Commands (Polish) -->
+    <string name="voice_command_next">następny|następnego|następna|następnej|następne|dalej|kontynuuj|naprzód|kolejny</string>
+    <string name="voice_command_previous">poprzedni|poprzedniego|poprzednia|poprzedniej|poprzednie|wstecz|cofnij|powrót|z powrotem</string>
+    <string name="voice_command_repeat">powtórz|jeszcze raz|raz jeszcze</string>
+    <string name="voice_command_start">start|początek|na początek|od początku</string>
+
+    <!-- UI Strings -->
+    <string name="cooking_assistant">Asystent Kuchenny</string>
+    <string name="start_cooking">Rozpocznij Gotowanie</string>
+    <string name="step_x_of_y">Krok %1$d z %2$d</string>
+    <string name="back">Wstecz</string>
+    <string name="step_number">Krok %1$d</string>
+    <string name="ingredients">Składniki</string>
+    <string name="instructions">Instrukcje</string>
+    <string name="minutes">%1$d minut</string>
+
+    <!-- Voice Control -->
+    <string name="listening">Słucham…</string>
+    <string name="voice_control_paused">Sterowanie głosem wstrzymane</string>
+    <string name="auto_listening_enabled">Automatyczne nasłuchiwanie włączone</string>
+    <string name="resume_voice_control">Wznów sterowanie głosem</string>
+    <string name="pause_voice_control">Wstrzymaj sterowanie głosem</string>
+    <string name="stop_listening">Przestań słuchać</string>
+    <string name="start_listening">Zacznij słuchać</string>
+
+    <!-- Voice Command Hints -->
+    <string name="voice_commands_hint">Komendy głosowe: \"Następny\", \"Poprzedni\", \"Powtórz\", \"Start\"</string>
+    <string name="swipe_hint">lub przesuń w lewo/prawo aby nawigować</string>
+
+    <!-- Language Settings -->
+    <string name="language">Język</string>
+    <string name="select_language">Wybierz język</string>
+    <string name="english">English</string>
+    <string name="polish">Polski</string>
+    <string name="restart_app_message">Aplikacja zostanie uruchomiona ponownie aby zastosować zmianę języka</string>
+</resources>
