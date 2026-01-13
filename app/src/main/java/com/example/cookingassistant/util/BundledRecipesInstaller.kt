@@ -2,8 +2,13 @@ package com.example.cookingassistant.util
 
 import android.content.Context
 import android.util.Log
+import com.example.cookingassistant.model.Recipe
+import com.example.cookingassistant.repository.RecipeIndex
+import com.example.cookingassistant.repository.RecipeIndexEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.IOException
 
@@ -85,6 +90,9 @@ class BundledRecipesInstaller(private val context: Context) {
             // Media directory might not exist in assets, which is fine
             Log.d(TAG, "No media files found in assets (this is normal)")
         }
+
+        // Build recipe index for the bundled recipes
+        buildRecipeIndex()
     }
 
     /**
@@ -167,6 +175,66 @@ class BundledRecipesInstaller(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to force reinstall bundled recipes", e)
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Builds the recipe index by scanning bundled recipe files.
+     * This index is used by FileRecipeRepository for fast recipe lookups.
+     */
+    private fun buildRecipeIndex() {
+        try {
+            val json = Json {
+                prettyPrint = true
+                ignoreUnknownKeys = true
+            }
+
+            val recipesDir = File(context.filesDir, INTERNAL_RECIPES_DIR)
+            val indexFile = File(context.filesDir, "recipes/recipes_index.json")
+
+            // Find all recipe JSON files in the bundled directory
+            val recipeFiles = recipesDir.listFiles { file ->
+                file.isFile && file.extension == "json"
+            } ?: emptyArray()
+
+            Log.d(TAG, "Found ${recipeFiles.size} recipe files to index")
+
+            // Parse each recipe file and create index entries
+            val indexEntries = recipeFiles.mapNotNull { file ->
+                try {
+                    val recipeJson = file.readText()
+                    val recipe = json.decodeFromString<Recipe>(recipeJson)
+
+                    // Create index entry with relative path
+                    val recipesBaseDir = File(context.filesDir, "recipes")
+                    val relativePath = file.relativeTo(recipesBaseDir).path
+
+                    RecipeIndexEntry(
+                        id = recipe.id,
+                        name = recipe.name,
+                        filePath = relativePath,
+                        categories = recipe.categories.toList(),
+                        isCustom = recipe.isCustom,
+                        thumbnail = recipe.mainPhotoUri
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse recipe file: ${file.name}", e)
+                    null
+                }
+            }
+
+            // Create and save the index
+            val index = RecipeIndex(
+                version = 1,
+                lastUpdated = System.currentTimeMillis(),
+                recipes = indexEntries
+            )
+
+            indexFile.writeText(json.encodeToString(index))
+            Log.i(TAG, "Recipe index created with ${indexEntries.size} entries")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to build recipe index", e)
+            throw e
         }
     }
 }

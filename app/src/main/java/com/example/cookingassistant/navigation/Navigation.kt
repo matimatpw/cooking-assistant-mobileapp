@@ -8,7 +8,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.cookingassistant.repository.RecipeRepository
+import com.example.cookingassistant.repository.CachedRecipeRepository
 import com.example.cookingassistant.ui.theme.AddEditRecipeScreen
 import com.example.cookingassistant.ui.theme.CookingStepScreen
 import com.example.cookingassistant.ui.theme.RecipeDetailScreen
@@ -37,12 +37,12 @@ sealed class Screen(val route: String) {
  * Navigation graph for the app
  * Defines which composables are displayed for each route
  * @param navController Controls navigation between screens
- * @param repository Recipe repository for data access
+ * @param repository Cached recipe repository for data access
  */
 @Composable
 fun CookingAssistantNavigation(
     navController: NavHostController,
-    repository: RecipeRepository
+    repository: CachedRecipeRepository
 ) {
     // Single ViewModel instance shared across navigation with repository
     // This persists data as user navigates between screens
@@ -100,6 +100,10 @@ fun CookingAssistantNavigation(
                     onStartCooking = { recipeId ->
                         // Navigate to cooking step screen
                         navController.navigate(Screen.CookingStep.createRoute(recipeId))
+                    },
+                    onEdit = { recipeId ->
+                        // Navigate to edit recipe screen
+                        navController.navigate(Screen.EditRecipe.createRoute(recipeId))
                     }
                 )
             }

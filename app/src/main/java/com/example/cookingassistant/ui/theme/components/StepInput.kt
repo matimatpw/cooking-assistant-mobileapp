@@ -64,7 +64,7 @@ fun StepInputList(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Add Step")
+                Text(stringResource(R.string.add_step))
             }
         }
 
@@ -77,7 +77,7 @@ fun StepInputList(
                 )
             ) {
                 Text(
-                    text = "No steps added yet. Click \"Add Step\" to start.",
+                    text = stringResource(R.string.no_steps_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)
@@ -94,12 +94,16 @@ fun StepInputList(
                         onStepsChange(updatedList)
                     },
                     onRemove = {
-                        val updatedList = steps.filterIndexed { i, _ -> i != index }
-                        // Renumber steps after removal
-                        onStepsChange(
-                            updatedList.mapIndexed { i, s -> s.copy(stepNumber = i + 1) }
-                        )
+                        // Only allow removal if there's more than 1 step
+                        if (steps.size > 1) {
+                            val updatedList = steps.filterIndexed { i, _ -> i != index }
+                            // Renumber steps after removal
+                            onStepsChange(
+                                updatedList.mapIndexed { i, s -> s.copy(stepNumber = i + 1) }
+                            )
+                        }
                     },
+                    canRemove = steps.size > 1,
                     canMoveUp = index > 0,
                     canMoveDown = index < steps.size - 1,
                     onMoveUp = {
@@ -141,6 +145,7 @@ fun StepInputItem(
     index: Int,
     onStepChange: (RecipeStep) -> Unit,
     onRemove: () -> Unit,
+    canRemove: Boolean = true,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onMoveUp: () -> Unit,
@@ -170,7 +175,7 @@ fun StepInputItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Step ${index + 1}",
+                        text = stringResource(R.string.step_number, index + 1),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
@@ -199,12 +204,13 @@ fun StepInputItem(
 
                 IconButton(
                     onClick = onRemove,
+                    enabled = canRemove,
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Remove step",
-                        tint = MaterialTheme.colorScheme.error,
+                        contentDescription = stringResource(R.string.remove_step),
+                        tint = if (canRemove) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -216,8 +222,8 @@ fun StepInputItem(
             OutlinedTextField(
                 value = step.instruction,
                 onValueChange = { onStepChange(step.copy(instruction = it)) },
-                label = { Text("Instruction *") },
-                placeholder = { Text("Describe what to do in this step") },
+                label = { Text(stringResource(R.string.instruction_field)) },
+                placeholder = { Text(stringResource(R.string.instruction_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 5,
@@ -238,8 +244,8 @@ fun StepInputItem(
                         val duration = it.toIntOrNull()
                         onStepChange(step.copy(durationMinutes = duration))
                     },
-                    label = { Text("Duration (min)") },
-                    placeholder = { Text("10") },
+                    label = { Text(stringResource(R.string.duration_field)) },
+                    placeholder = { Text(stringResource(R.string.duration_placeholder)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -255,8 +261,8 @@ fun StepInputItem(
                 onValueChange = {
                     onStepChange(step.copy(tips = if (it.isBlank()) null else it))
                 },
-                label = { Text("Tips (optional)") },
-                placeholder = { Text("Helpful hints for this step") },
+                label = { Text(stringResource(R.string.tips_optional)) },
+                placeholder = { Text(stringResource(R.string.tips_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 1,
                 maxLines = 3,
@@ -271,7 +277,7 @@ fun StepInputItem(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "${step.mediaItems.size} media item(s) attached",
+                        text = stringResource(R.string.media_items_attached, step.mediaItems.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(8.dp)

@@ -17,6 +17,15 @@
     <string name="instructions">Instrukcje</string>
     <string name="minutes">%1$d minut</string>
     <string name="play_video">Odtwórz wideo</string>
+    <string name="no_recipes_available">Brak dostępnych przepisów. Przeciągnij w dół aby odświeżyć.</string>
+
+    <!-- Tab Labels -->
+    <string name="explore_tab">Odkryj</string>
+    <string name="my_recipes_tab">Moje Przepisy</string>
+
+    <!-- Empty State Messages -->
+    <string name="no_explore_recipes">Brak dostępnych przepisów. Przeciągnij w dół, aby odświeżyć.</string>
+    <string name="no_custom_recipes">Nie masz jeszcze własnych przepisów. Naciśnij +, aby dodać pierwszy przepis.</string>
 
     <!-- Voice Control -->
     <string name="listening">Słucham…</string>
@@ -37,4 +46,125 @@
     <string name="english">English</string>
     <string name="polish">Polski</string>
     <string name="restart_app_message">Aplikacja zostanie uruchomiona ponownie aby zastosować zmianę języka</string>
+
+    <!-- Add/Edit Recipe Screen -->
+    <string name="add_recipe">Dodaj Przepis</string>
+    <string name="edit_recipe">Edytuj Przepis</string>
+    <string name="save">Zapisz</string>
+    <string name="save_recipe">Zapisz Przepis</string>
+    <string name="add_recipe_button">Dodaj Przepis</string>
+    <string name="validation_error">Proszę wypełnić wszystkie wymagane pola (oznaczone *)</string>
+
+    <!-- Recipe Form Sections -->
+    <string name="basic_information">Podstawowe Informacje</string>
+    <string name="recipe_details">Szczegóły Przepisu</string>
+    <string name="categories">Kategorie</string>
+
+    <!-- Recipe Fields -->
+    <string name="recipe_name">Nazwa Przepisu *</string>
+    <string name="recipe_name_placeholder">np. Ciasteczka z Czekoladą</string>
+    <string name="description">Opis *</string>
+    <string name="description_placeholder">Krótki opis przepisu</string>
+    <string name="main_photo">Główne Zdjęcie</string>
+    <string name="prep_time">Czas Przygotowania (min)</string>
+    <string name="prep_time_placeholder">10</string>
+    <string name="cook_time">Czas Gotowania (min) *</string>
+    <string name="cook_time_placeholder">30</string>
+    <string name="servings">Porcje *</string>
+    <string name="servings_placeholder">4</string>
+    <string name="difficulty">Trudność</string>
+    <string name="tags">Tagi (oddzielone przecinkami)</string>
+    <string name="tags_placeholder">np. szybkie, wegetariańskie, włoskie</string>
+
+    <!-- Difficulty Levels -->
+    <string name="difficulty_easy">Łatwy</string>
+    <string name="difficulty_medium">Średni</string>
+    <string name="difficulty_hard">Trudny</string>
+
+    <!-- Category Groups -->
+    <string name="category_meal_type">Typ Posiłku</string>
+    <string name="category_dietary">Dietetyczne</string>
+    <string name="category_cuisine">Kuchnia</string>
+    <string name="category_occasion">Okazja</string>
+
+    <!-- Ingredients Section -->
+    <string name="ingredients_section">Składniki</string>
+    <string name="ingredient_name">Nazwa Składnika *</string>
+    <string name="ingredient_name_placeholder">np. mąka</string>
+    <string name="ingredient_quantity">Ilość *</string>
+    <string name="ingredient_quantity_placeholder">np. 2 szklanki</string>
+    <string name="ingredient_notes">Notatki (opcjonalne)</string>
+    <string name="ingredient_notes_placeholder">np. przesiana</string>
+    <string name="add_ingredient">Dodaj Składnik</string>
+    <string name="add">Dodaj</string>
+    <string name="remove_ingredient">Usuń Składnik</string>
+    <string name="no_ingredients_message">Nie dodano jeszcze składników. Kliknij \"Dodaj\" aby zacząć.</string>
+    <string name="ingredient_number">Składnik %1$d</string>
+    <string name="name_field">Nazwa *</string>
+    <string name="name_placeholder">np. Pomidory</string>
+    <string name="quantity_field">Ilość *</string>
+    <string name="quantity_placeholder">np. 2 szklanki lub 500g</string>
+    <string name="notes_optional">Notatki (opcjonalne)</string>
+    <string name="notes_placeholder">np. pokrojone w kostkę, w temperaturze pokojowej</string>
+
+    <!-- Steps Section -->
+    <string name="steps_section">Kroki</string>
+    <string name="step_instruction">Krok %1$d Instrukcja *</string>
+    <string name="step_instruction_placeholder">Opisz co zrobić w tym kroku</string>
+    <string name="step_duration">Czas trwania (min, opcjonalnie)</string>
+    <string name="step_duration_placeholder">5</string>
+    <string name="add_step">Dodaj Krok</string>
+    <string name="remove_step">Usuń Krok</string>
+    <string name="no_steps_message">Nie dodano jeszcze kroków. Kliknij \"Dodaj Krok\" aby zacząć.</string>
+    <string name="instruction_field">Instrukcja *</string>
+    <string name="instruction_placeholder">Opisz co zrobić w tym kroku</string>
+    <string name="duration_field">Czas trwania (min)</string>
+    <string name="duration_placeholder">10</string>
+    <string name="tips_optional">Wskazówki (opcjonalnie)</string>
+    <string name="tips_placeholder">Pomocne wskazówki dla tego kroku</string>
+    <string name="media_items_attached">Załączono %1$d element(y) multimedialne</string>
+
+    <!-- Media Picker -->
+    <string name="add_photo">Dodaj Zdjęcie</string>
+    <string name="remove_photo">Usuń</string>
+    <string name="media_selection">Wybór Multimediów</string>
+    <string name="photo_video_selection_info">Wybór zdjęć/wideo będzie dostępny po integracji kamery i galerii.</string>
+    <string name="photo_json_info">Na razie możesz dodać zdjęcia edytując pliki JSON przepisów bezpośrednio.</string>
+    <string name="camera_gallery_coming_soon">Integracja kamery i galerii wkrótce</string>
+    <string name="ok">OK</string>
+
+    <!-- Exit Confirmation Dialog -->
+    <string name="unsaved_changes_title">Niezapisane Zmiany</string>
+    <string name="unsaved_changes_message">Masz niezapisane zmiany. Co chcesz zrobić?</string>
+    <string name="stay_and_continue">Zostań</string>
+    <string name="save_draft_and_exit">Zapisz Szkic i Wyjdź</string>
+    <string name="discard_and_exit">Odrzuć i Wyjdź</string>
+
+    <!-- Draft Recovery Dialog -->
+    <string name="draft_found_title">Znaleziono Szkic</string>
+    <string name="draft_found_message">Masz niezakończony szkic przepisu. Czy chcesz kontynuować jego edycję?</string>
+    <string name="continue_draft">Kontynuuj Szkic</string>
+    <string name="start_fresh">Zacznij od Nowa</string>
+
+    <!-- Recipe Categories -->
+    <string name="category_breakfast">Śniadanie</string>
+    <string name="category_lunch">Obiad</string>
+    <string name="category_dinner">Kolacja</string>
+    <string name="category_dessert">Deser</string>
+    <string name="category_snack">Przekąska</string>
+    <string name="category_appetizer">Przystawka</string>
+    <string name="category_vegetarian">Wegetariańskie</string>
+    <string name="category_vegan">Wegańskie</string>
+    <string name="category_gluten_free">Bezglutenowe</string>
+    <string name="category_dairy_free">Bez Nabiału</string>
+    <string name="category_italian">Włoska</string>
+    <string name="category_polish">Polska</string>
+    <string name="category_asian">Azjatycka</string>
+    <string name="category_mexican">Meksykańska</string>
+    <string name="category_greek">Grecka</string>
+    <string name="category_american">Amerykańska</string>
+    <string name="category_quick_meal">Szybki Posiłek</string>
+    <string name="category_meal_prep">Przygotowanie Posiłków</string>
+    <string name="category_party">Impreza</string>
+    <string name="category_holiday">Święta</string>
 </resources>

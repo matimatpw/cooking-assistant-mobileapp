@@ -1,5 +1,6 @@
 package com.example.cookingassistant.ui.theme
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.cookingassistant.R
 import com.example.cookingassistant.model.*
+import androidx.compose.runtime.LaunchedEffect
 import com.example.cookingassistant.ui.theme.components.IngredientInputList
 import com.example.cookingassistant.ui.theme.components.MediaPickerButton
 import com.example.cookingassistant.ui.theme.components.StepInputList
@@ -38,6 +40,18 @@ fun AddEditRecipeScreen(
     // Load existing recipe if editing
     val existingRecipe = remember(recipeId) {
         recipeId?.let { viewModel.getRecipeById(it) }
+    }
+
+    // Dialog state for draft recovery
+    var showDraftDialog by remember { mutableStateOf(false) }
+    var loadedDraft by remember { mutableStateOf<RecipeDraft?>(null) }
+
+    // Check for existing draft when screen opens (only for new recipes)
+    LaunchedEffect(Unit) {
+        if (recipeId == null && viewModel.hasDraft()) {
+            loadedDraft = viewModel.loadDraft()
+            showDraftDialog = true
+        }
     }
 
     // Form state
@@ -67,6 +81,21 @@ fun AddEditRecipeScreen(
         )
     }
 
+    // Function to load draft into form
+    fun loadDraftIntoForm(draft: RecipeDraft) {
+        name = draft.name
+        description = draft.description
+        mainPhotoUri = draft.mainPhotoUri
+        prepTime = draft.prepTime
+        cookingTime = draft.cookingTime
+        servings = draft.servings
+        difficulty = draft.difficulty
+        selectedCategories = draft.selectedCategories
+        tags = draft.tags
+        ingredients = draft.ingredients
+        steps = draft.steps
+    }
+
     // Validation state
     var showValidationErrors by remember { mutableStateOf(false) }
     val isValid = remember(name, description, cookingTime, servings, ingredients, steps) {
@@ -78,14 +107,52 @@ fun AddEditRecipeScreen(
                 steps.all { it.instruction.isNotBlank() }
     }
 
+    // Dialog state for unsaved changes
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    // Check if there are unsaved changes
+    val hasUnsavedChanges = remember(
+        name, description, mainPhotoUri, prepTime, cookingTime, servings,
+        difficulty, selectedCategories, tags, ingredients, steps
+    ) {
+        name.isNotBlank() ||
+        description.isNotBlank() ||
+        mainPhotoUri != existingRecipe?.mainPhotoUri ||
+        prepTime.isNotBlank() ||
+        cookingTime.isNotBlank() ||
+        servings.isNotBlank() ||
+        difficulty != (existingRecipe?.difficulty ?: Difficulty.MEDIUM) ||
+        selectedCategories != (existingRecipe?.categories ?: emptySet<RecipeCategory>()) ||
+        tags.isNotBlank() ||
+        ingredients.size > 1 ||
+        (ingredients.size == 1 && (ingredients[0].name.isNotBlank() || ingredients[0].quantity.isNotBlank())) ||
+        steps.size > 1 ||
+        (steps.size == 1 && steps[0].instruction.isNotBlank())
+    }
+
+    // Handle back button press
+    BackHandler(enabled = true) {
+        if (hasUnsavedChanges) {
+            showExitDialog = true
+        } else {
+            onCancel()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (recipeId == null) "Add Recipe" else "Edit Recipe")
+                    Text(if (recipeId == null) stringResource(R.string.add_recipe) else stringResource(R.string.edit_recipe))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onCancel) {
+                    IconButton(onClick = {
+                        if (hasUnsavedChanges) {
+                            showExitDialog = true
+                        } else {
+                            onCancel()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.back)
@@ -118,6 +185,8 @@ fun AddEditRecipeScreen(
                             steps = steps,
                             viewModel = viewModel
                         )
+                        // Clear draft when recipe is actually saved
+                        viewModel.clearDraft()
                         onSave()
                     } else {
                         showValidationErrors = true
@@ -126,10 +195,10 @@ fun AddEditRecipeScreen(
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Save,
-                        contentDescription = "Save"
+                        contentDescription = stringResource(R.string.save)
                     )
                 },
-                text = { Text("Save Recipe") },
+                text = { Text(stringResource(R.string.save_recipe)) },
                 containerColor = if (isValid) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -154,7 +223,7 @@ fun AddEditRecipeScreen(
                     )
                 ) {
                     Text(
-                        text = "Please fill in all required fields (marked with *)",
+                        text = stringResource(R.string.validation_error),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(12.dp)
@@ -164,7 +233,7 @@ fun AddEditRecipeScreen(
 
             // Basic Information Section
             Text(
-                text = "Basic Information",
+                text = stringResource(R.string.basic_information),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -173,8 +242,8 @@ fun AddEditRecipeScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Recipe Name *") },
-                placeholder = { Text("e.g., Chocolate Chip Cookies") },
+                label = { Text(stringResource(R.string.recipe_name)) },
+                placeholder = { Text(stringResource(R.string.recipe_name_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 isError = showValidationErrors && name.isBlank(),
@@ -185,8 +254,8 @@ fun AddEditRecipeScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description *") },
-                placeholder = { Text("Brief description of the recipe") },
+                label = { Text(stringResource(R.string.description)) },
+                placeholder = { Text(stringResource(R.string.description_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
@@ -196,7 +265,7 @@ fun AddEditRecipeScreen(
 
             // Main photo picker
             MediaPickerButton(
-                label = "Main Photo",
+                label = stringResource(R.string.main_photo),
                 currentMediaUri = mainPhotoUri,
                 onMediaSelected = { uri -> mainPhotoUri = uri?.toString() }
             )
@@ -205,7 +274,7 @@ fun AddEditRecipeScreen(
 
             // Recipe Details Section
             Text(
-                text = "Recipe Details",
+                text = stringResource(R.string.recipe_details),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -219,8 +288,8 @@ fun AddEditRecipeScreen(
                 OutlinedTextField(
                     value = prepTime,
                     onValueChange = { prepTime = it },
-                    label = { Text("Prep Time (min)") },
-                    placeholder = { Text("10") },
+                    label = { Text(stringResource(R.string.prep_time)) },
+                    placeholder = { Text(stringResource(R.string.prep_time_placeholder)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -231,8 +300,8 @@ fun AddEditRecipeScreen(
                 OutlinedTextField(
                     value = cookingTime,
                     onValueChange = { cookingTime = it },
-                    label = { Text("Cook Time (min) *") },
-                    placeholder = { Text("30") },
+                    label = { Text(stringResource(R.string.cook_time)) },
+                    placeholder = { Text(stringResource(R.string.cook_time_placeholder)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -244,8 +313,8 @@ fun AddEditRecipeScreen(
                 OutlinedTextField(
                     value = servings,
                     onValueChange = { servings = it },
-                    label = { Text("Servings *") },
-                    placeholder = { Text("4") },
+                    label = { Text(stringResource(R.string.servings)) },
+                    placeholder = { Text(stringResource(R.string.servings_placeholder)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -259,7 +328,7 @@ fun AddEditRecipeScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Difficulty",
+                    text = stringResource(R.string.difficulty),
                     style = MaterialTheme.typography.labelMedium
                 )
 
@@ -268,10 +337,15 @@ fun AddEditRecipeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Difficulty.entries.forEach { diff ->
+                        val difficultyLabel = when (diff) {
+                            Difficulty.EASY -> stringResource(R.string.difficulty_easy)
+                            Difficulty.MEDIUM -> stringResource(R.string.difficulty_medium)
+                            Difficulty.HARD -> stringResource(R.string.difficulty_hard)
+                        }
                         FilterChip(
                             selected = difficulty == diff,
                             onClick = { difficulty = diff },
-                            label = { Text(diff.name) },
+                            label = { Text(difficultyLabel) },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -282,7 +356,7 @@ fun AddEditRecipeScreen(
 
             // Categories Section
             Text(
-                text = "Categories",
+                text = stringResource(R.string.categories),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -296,8 +370,8 @@ fun AddEditRecipeScreen(
             OutlinedTextField(
                 value = tags,
                 onValueChange = { tags = it },
-                label = { Text("Tags (comma-separated)") },
-                placeholder = { Text("e.g., quick, vegetarian, italian") },
+                label = { Text(stringResource(R.string.tags)) },
+                placeholder = { Text(stringResource(R.string.tags_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp)
@@ -323,6 +397,117 @@ fun AddEditRecipeScreen(
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
+
+    // Exit confirmation dialog
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = {
+                Text(text = stringResource(R.string.unsaved_changes_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.unsaved_changes_message))
+            },
+            confirmButton = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Option 1: Save Draft and Exit
+                    Button(
+                        onClick = {
+                            showExitDialog = false
+                            // Save as draft
+                            val draft = RecipeDraft(
+                                recipeId = recipeId,
+                                name = name,
+                                description = description,
+                                mainPhotoUri = mainPhotoUri,
+                                prepTime = prepTime,
+                                cookingTime = cookingTime,
+                                servings = servings,
+                                difficulty = difficulty,
+                                selectedCategories = selectedCategories,
+                                tags = tags,
+                                ingredients = ingredients,
+                                steps = steps
+                            )
+                            viewModel.saveDraft(draft)
+                            onCancel()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.save_draft_and_exit))
+                    }
+
+                    // Option 2: Discard and Exit
+                    OutlinedButton(
+                        onClick = {
+                            showExitDialog = false
+                            viewModel.clearDraft()
+                            onCancel()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.discard_and_exit))
+                    }
+
+                    // Option 3: Stay
+                    TextButton(
+                        onClick = {
+                            showExitDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.stay_and_continue))
+                    }
+                }
+            },
+            dismissButton = {}
+        )
+    }
+
+    // Draft recovery dialog
+    if (showDraftDialog && loadedDraft != null) {
+        AlertDialog(
+            onDismissRequest = {
+                // User must choose an option
+            },
+            title = {
+                Text(text = stringResource(R.string.draft_found_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.draft_found_message))
+            },
+            confirmButton = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Option 1: Continue Draft
+                    Button(
+                        onClick = {
+                            loadDraftIntoForm(loadedDraft!!)
+                            showDraftDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.continue_draft))
+                    }
+
+                    // Option 2: Start Fresh
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.clearDraft()
+                            showDraftDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.start_fresh))
+                    }
+                }
+            },
+            dismissButton = {}
+        )
+    }
 }
 
 /**
@@ -337,9 +522,9 @@ fun CategorySelector(
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Group categories by type
-        val categoryGroups = mapOf(
-            "Meal Type" to listOf(
+        // Group categories by type with localized names
+        val categoryGroups = listOf(
+            stringResource(R.string.category_meal_type) to listOf(
                 RecipeCategory.BREAKFAST,
                 RecipeCategory.LUNCH,
                 RecipeCategory.DINNER,
@@ -347,13 +532,13 @@ fun CategorySelector(
                 RecipeCategory.SNACK,
                 RecipeCategory.APPETIZER
             ),
-            "Dietary" to listOf(
+            stringResource(R.string.category_dietary) to listOf(
                 RecipeCategory.VEGETARIAN,
                 RecipeCategory.VEGAN,
                 RecipeCategory.GLUTEN_FREE,
                 RecipeCategory.DAIRY_FREE
             ),
-            "Cuisine" to listOf(
+            stringResource(R.string.category_cuisine) to listOf(
                 RecipeCategory.ITALIAN,
                 RecipeCategory.POLISH,
                 RecipeCategory.ASIAN,
@@ -361,7 +546,7 @@ fun CategorySelector(
                 RecipeCategory.GREEK,
                 RecipeCategory.AMERICAN
             ),
-            "Occasion" to listOf(
+            stringResource(R.string.category_occasion) to listOf(
                 RecipeCategory.QUICK_MEAL,
                 RecipeCategory.MEAL_PREP,
                 RecipeCategory.PARTY,
@@ -384,6 +569,7 @@ fun CategorySelector(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     categories.forEach { category ->
+                        val categoryLabel = getCategoryLabel(category)
                         FilterChip(
                             selected = category in selectedCategories,
                             onClick = {
@@ -396,16 +582,42 @@ fun CategorySelector(
                                 )
                             },
                             label = {
-                                Text(
-                                    category.name.lowercase().replace("_", " ")
-                                        .replaceFirstChar { it.uppercase() }
-                                )
+                                Text(categoryLabel)
                             }
                         )
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * Gets localized label for a recipe category
+ */
+@Composable
+private fun getCategoryLabel(category: RecipeCategory): String {
+    return when (category) {
+        RecipeCategory.BREAKFAST -> stringResource(R.string.category_breakfast)
+        RecipeCategory.LUNCH -> stringResource(R.string.category_lunch)
+        RecipeCategory.DINNER -> stringResource(R.string.category_dinner)
+        RecipeCategory.DESSERT -> stringResource(R.string.category_dessert)
+        RecipeCategory.SNACK -> stringResource(R.string.category_snack)
+        RecipeCategory.APPETIZER -> stringResource(R.string.category_appetizer)
+        RecipeCategory.VEGETARIAN -> stringResource(R.string.category_vegetarian)
+        RecipeCategory.VEGAN -> stringResource(R.string.category_vegan)
+        RecipeCategory.GLUTEN_FREE -> stringResource(R.string.category_gluten_free)
+        RecipeCategory.DAIRY_FREE -> stringResource(R.string.category_dairy_free)
+        RecipeCategory.ITALIAN -> stringResource(R.string.category_italian)
+        RecipeCategory.POLISH -> stringResource(R.string.category_polish)
+        RecipeCategory.ASIAN -> stringResource(R.string.category_asian)
+        RecipeCategory.MEXICAN -> stringResource(R.string.category_mexican)
+        RecipeCategory.GREEK -> stringResource(R.string.category_greek)
+        RecipeCategory.AMERICAN -> stringResource(R.string.category_american)
+        RecipeCategory.QUICK_MEAL -> stringResource(R.string.category_quick_meal)
+        RecipeCategory.MEAL_PREP -> stringResource(R.string.category_meal_prep)
+        RecipeCategory.PARTY -> stringResource(R.string.category_party)
+        RecipeCategory.HOLIDAY -> stringResource(R.string.category_holiday)
     }
 }
 

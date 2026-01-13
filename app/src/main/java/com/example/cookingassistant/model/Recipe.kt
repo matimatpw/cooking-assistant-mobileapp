@@ -140,3 +140,37 @@ enum class RecipeCategory {
     PARTY,
     HOLIDAY
 }
+
+/**
+ * Represents a draft of a recipe being edited
+ * Used to save user progress when exiting the add/edit screen without saving
+ *
+ * @param recipeId ID of recipe being edited, null if creating new recipe
+ * @param name Recipe name
+ * @param description Recipe description
+ * @param mainPhotoUri Main photo URI
+ * @param prepTime Preparation time string
+ * @param cookingTime Cooking time string
+ * @param servings Servings string
+ * @param difficulty Difficulty level
+ * @param selectedCategories Selected categories
+ * @param tags Tags as comma-separated string
+ * @param ingredients List of ingredients
+ * @param steps List of recipe steps
+ * @param timestamp When the draft was saved
+ */
+data class RecipeDraft(
+    val recipeId: String? = null,
+    val name: String = "",
+    val description: String = "",
+    val mainPhotoUri: String? = null,
+    val prepTime: String = "",
+    val cookingTime: String = "",
+    val servings: String = "",
+    val difficulty: Difficulty = Difficulty.MEDIUM,
+    val selectedCategories: Set<RecipeCategory> = emptySet(),
+    val tags: String = "",
+    val ingredients: List<Ingredient> = listOf(Ingredient("", "", null)),
+    val steps: List<RecipeStep> = listOf(RecipeStep(1, "", null, emptyList(), null)),
+    val timestamp: Long = System.currentTimeMillis()
+)

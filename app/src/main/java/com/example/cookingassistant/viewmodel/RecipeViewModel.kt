@@ -1,13 +1,15 @@
 package com.example.cookingassistant.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cookingassistant.model.Difficulty
 import com.example.cookingassistant.model.Ingredient
 import com.example.cookingassistant.model.Recipe
 import com.example.cookingassistant.model.RecipeCategory
+import com.example.cookingassistant.model.RecipeDraft
 import com.example.cookingassistant.model.RecipeStep
-import com.example.cookingassistant.repository.RecipeRepository
+import com.example.cookingassistant.repository.CachedRecipeRepository
 import com.example.cookingassistant.voice.VoiceCommand
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,13 +21,19 @@ import kotlinx.coroutines.launch
  * Follows MVVM pattern - exposes state via StateFlow, no UI references
  */
 class RecipeViewModel(
-    private val repository: RecipeRepository? = null
+    private val repository: CachedRecipeRepository? = null
 ) : ViewModel() {
 
-    // Private mutable state - only ViewModel can modify
-    private val _recipes = MutableStateFlow<List<Recipe>>(emptyList())
+    companion object {
+        private const val TAG = "RecipeViewModel"
+    }
 
-    // Public immutable state - UI observes this
+    // UI state for recipe list screen
+    private val _state = MutableStateFlow<RecipeListState>(RecipeListState.Loading)
+    val state: StateFlow<RecipeListState> = _state.asStateFlow()
+
+    // Legacy: Keep recipes for backward compatibility with existing screens
+    private val _recipes = MutableStateFlow<List<Recipe>>(emptyList())
     val recipes: StateFlow<List<Recipe>> = _recipes.asStateFlow()
 
     // Current step index for cooking mode
@@ -36,31 +44,112 @@ class RecipeViewModel(
     private val _activeRecipe = MutableStateFlow<Recipe?>(null)
     val activeRecipe: StateFlow<Recipe?> = _activeRecipe.asStateFlow()
 
+    // Selected tab index (0 = Explore, 1 = My Recipes)
+    private val _selectedTabIndex = MutableStateFlow(0)
+    val selectedTabIndex: StateFlow<Int> = _selectedTabIndex.asStateFlow()
+
+    // Recipe draft for add/edit screen
+    private val _recipeDraft = MutableStateFlow<RecipeDraft?>(null)
+    val recipeDraft: StateFlow<RecipeDraft?> = _recipeDraft.asStateFlow()
+
     init {
-        // Load recipes from repository or use hardcoded fallback
+        // Load recipes from cache on startup
         loadRecipes()
     }
 
     /**
-     * Loads recipe data from repository or falls back to hardcoded data
+     * Loads recipes from local cache immediately.
+     * This provides fast app startup with cached data.
      */
-    private fun loadRecipes() {
+    fun loadRecipes() {
         if (repository != null) {
-            // Load from repository
             viewModelScope.launch {
+                Log.d(TAG, "Loading recipes from cache...")
+                _state.value = RecipeListState.Loading
+
                 repository.getAllRecipes()
                     .onSuccess { recipes ->
+                        Log.d(TAG, "Loaded ${recipes.size} recipes from cache")
                         _recipes.value = recipes
+                        _state.value = RecipeListState.Success(recipes)
                     }
                     .onFailure { error ->
-                        // Log error and fall back to hardcoded recipes
-                        android.util.Log.e("RecipeViewModel", "Failed to load recipes from repository", error)
+                        Log.e(TAG, "Failed to load recipes from cache", error)
+                        // Fall back to hardcoded recipes
                         loadHardcodedRecipes()
+                        _state.value = RecipeListState.Success(_recipes.value)
                     }
             }
         } else {
-            // Fall back to hardcoded recipes
+            Log.w(TAG, "No repository provided, using hardcoded recipes")
             loadHardcodedRecipes()
+            _state.value = RecipeListState.Success(_recipes.value)
+        }
+    }
+
+    /**
+     * Fetches fresh recipes from remote API and updates cache.
+     * Used for pull-to-refresh functionality.
+     */
+    fun refreshRecipes() {
+        if (repository != null) {
+            viewModelScope.launch {
+                Log.d(TAG, "Refreshing recipes from remote API...")
+
+                // Show refreshing state with current recipes
+                val currentRecipes = when (val currentState = _state.value) {
+                    is RecipeListState.Success -> currentState.recipes
+                    is RecipeListState.Error -> currentState.cachedRecipes
+                    else -> _recipes.value
+                }
+                _state.value = RecipeListState.Success(currentRecipes, isRefreshing = true)
+
+                repository.refreshRecipes()
+                    .onSuccess { freshRecipes ->
+                        Log.d(TAG, "Successfully refreshed ${freshRecipes.size} recipes")
+                        _recipes.value = freshRecipes
+                        _state.value = RecipeListState.Success(freshRecipes, isRefreshing = false)
+                    }
+                    .onFailure { error ->
+                        Log.e(TAG, "Failed to refresh recipes", error)
+                        _state.value = RecipeListState.Error(
+                            message = error.message ?: "Failed to refresh recipes",
+                            cachedRecipes = currentRecipes
+                        )
+                    }
+            }
+        } else {
+            Log.w(TAG, "No repository provided, cannot refresh recipes")
+            _state.value = RecipeListState.Error(
+                message = "Cannot refresh: No repository",
+                cachedRecipes = _recipes.value
+            )
+        }
+    }
+
+    /**
+     * Updates the selected tab index.
+     * @param index Tab index (0 = Explore, 1 = My Recipes)
+     */
+    fun selectTab(index: Int) {
+        require(index in 0..1) { "Invalid tab index: $index. Must be 0 or 1." }
+        _selectedTabIndex.value = index
+    }
+
+    /**
+     * Gets recipes filtered by the selected tab.
+     * Tab 0 (Explore): Returns bundled recipes (isCustom = false)
+     * Tab 1 (My Recipes): Returns custom recipes (isCustom = true)
+     *
+     * @param tabIndex Tab index to filter for
+     * @param recipes Full list of recipes
+     * @return Filtered list based on tab selection
+     */
+    fun getRecipesForTab(tabIndex: Int, recipes: List<Recipe>): List<Recipe> {
+        return when (tabIndex) {
+            0 -> recipes.filter { !it.isCustom } // Explore: bundled recipes
+            1 -> recipes.filter { it.isCustom }  // My Recipes: custom recipes
+            else -> recipes // Fallback: show all
         }
     }
 
@@ -348,16 +437,16 @@ class RecipeViewModel(
             viewModelScope.launch {
                 repository.saveRecipe(recipe)
                     .onSuccess { recipeId ->
-                        android.util.Log.d("RecipeViewModel", "Recipe saved with ID: $recipeId")
+                        Log.d(TAG, "Recipe saved with ID: $recipeId")
                         // Reload recipes to include the new one
                         loadRecipes()
                     }
                     .onFailure { error ->
-                        android.util.Log.e("RecipeViewModel", "Failed to save recipe", error)
+                        Log.e(TAG, "Failed to save recipe", error)
                     }
             }
         } else {
-            android.util.Log.w("RecipeViewModel", "Cannot save recipe: repository is null")
+            Log.w(TAG, "Cannot save recipe: repository is null")
         }
     }
 
@@ -370,16 +459,16 @@ class RecipeViewModel(
             viewModelScope.launch {
                 repository.updateRecipe(recipe)
                     .onSuccess {
-                        android.util.Log.d("RecipeViewModel", "Recipe updated: ${recipe.id}")
+                        Log.d(TAG, "Recipe updated: ${recipe.id}")
                         // Reload recipes to reflect changes
                         loadRecipes()
                     }
                     .onFailure { error ->
-                        android.util.Log.e("RecipeViewModel", "Failed to update recipe", error)
+                        Log.e(TAG, "Failed to update recipe", error)
                     }
             }
         } else {
-            android.util.Log.w("RecipeViewModel", "Cannot update recipe: repository is null")
+            Log.w(TAG, "Cannot update recipe: repository is null")
         }
     }
 
@@ -392,16 +481,49 @@ class RecipeViewModel(
             viewModelScope.launch {
                 repository.deleteRecipe(recipeId)
                     .onSuccess {
-                        android.util.Log.d("RecipeViewModel", "Recipe deleted: $recipeId")
+                        Log.d(TAG, "Recipe deleted: $recipeId")
                         // Reload recipes to remove the deleted one
                         loadRecipes()
                     }
                     .onFailure { error ->
-                        android.util.Log.e("RecipeViewModel", "Failed to delete recipe", error)
+                        Log.e(TAG, "Failed to delete recipe", error)
                     }
             }
         } else {
-            android.util.Log.w("RecipeViewModel", "Cannot delete recipe: repository is null")
+            Log.w(TAG, "Cannot delete recipe: repository is null")
         }
+    }
+
+    /**
+     * Save recipe draft
+     * @param draft The recipe draft to save
+     */
+    fun saveDraft(draft: RecipeDraft) {
+        Log.d(TAG, "Saving recipe draft")
+        _recipeDraft.value = draft
+    }
+
+    /**
+     * Load recipe draft
+     * @return The saved draft, or null if none exists
+     */
+    fun loadDraft(): RecipeDraft? {
+        return _recipeDraft.value
+    }
+
+    /**
+     * Clear recipe draft
+     */
+    fun clearDraft() {
+        Log.d(TAG, "Clearing recipe draft")
+        _recipeDraft.value = null
+    }
+
+    /**
+     * Check if a draft exists
+     * @return true if a draft exists, false otherwise
+     */
+    fun hasDraft(): Boolean {
+        return _recipeDraft.value != null
     }
 }

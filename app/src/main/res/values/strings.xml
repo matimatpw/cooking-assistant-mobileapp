@@ -17,6 +17,15 @@
     <string name="instructions">Instructions</string>
     <string name="minutes">%1$d minutes</string>
     <string name="play_video">Play video</string>
+    <string name="no_recipes_available">No recipes available. Pull down to refresh.</string>
+
+    <!-- Tab Labels -->
+    <string name="explore_tab">Explore</string>
+    <string name="my_recipes_tab">My Recipes</string>
+
+    <!-- Empty State Messages -->
+    <string name="no_explore_recipes">No recipes available. Pull down to refresh.</string>
+    <string name="no_custom_recipes">No custom recipes yet. Tap + to add your first recipe.</string>
 
     <!-- Voice Control -->
     <string name="listening">Listening…</string>
@@ -37,4 +46,125 @@
     <string name="english">English</string>
     <string name="polish">Polski</string>
     <string name="restart_app_message">App will restart to apply language changes</string>
+
+    <!-- Add/Edit Recipe Screen -->
+    <string name="add_recipe">Add Recipe</string>
+    <string name="edit_recipe">Edit Recipe</string>
+    <string name="save">Save</string>
+    <string name="save_recipe">Save Recipe</string>
+    <string name="add_recipe_button">Add Recipe</string>
+    <string name="validation_error">Please fill in all required fields (marked with *)</string>
+
+    <!-- Recipe Form Sections -->
+    <string name="basic_information">Basic Information</string>
+    <string name="recipe_details">Recipe Details</string>
+    <string name="categories">Categories</string>
+
+    <!-- Recipe Fields -->
+    <string name="recipe_name">Recipe Name *</string>
+    <string name="recipe_name_placeholder">e.g., Chocolate Chip Cookies</string>
+    <string name="description">Description *</string>
+    <string name="description_placeholder">Brief description of the recipe</string>
+    <string name="main_photo">Main Photo</string>
+    <string name="prep_time">Prep Time (min)</string>
+    <string name="prep_time_placeholder">10</string>
+    <string name="cook_time">Cook Time (min) *</string>
+    <string name="cook_time_placeholder">30</string>
+    <string name="servings">Servings *</string>
+    <string name="servings_placeholder">4</string>
+    <string name="difficulty">Difficulty</string>
+    <string name="tags">Tags (comma-separated)</string>
+    <string name="tags_placeholder">e.g., quick, vegetarian, italian</string>
+
+    <!-- Difficulty Levels -->
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_hard">Hard</string>
+
+    <!-- Category Groups -->
+    <string name="category_meal_type">Meal Type</string>
+    <string name="category_dietary">Dietary</string>
+    <string name="category_cuisine">Cuisine</string>
+    <string name="category_occasion">Occasion</string>
+
+    <!-- Ingredients Section -->
+    <string name="ingredients_section">Ingredients</string>
+    <string name="ingredient_name">Ingredient Name *</string>
+    <string name="ingredient_name_placeholder">e.g., flour</string>
+    <string name="ingredient_quantity">Quantity *</string>
+    <string name="ingredient_quantity_placeholder">e.g., 2 cups</string>
+    <string name="ingredient_notes">Notes (optional)</string>
+    <string name="ingredient_notes_placeholder">e.g., sifted</string>
+    <string name="add_ingredient">Add Ingredient</string>
+    <string name="add">Add</string>
+    <string name="remove_ingredient">Remove Ingredient</string>
+    <string name="no_ingredients_message">No ingredients added yet. Click \"Add\" to start.</string>
+    <string name="ingredient_number">Ingredient %1$d</string>
+    <string name="name_field">Name *</string>
+    <string name="name_placeholder">e.g., Tomatoes</string>
+    <string name="quantity_field">Quantity *</string>
+    <string name="quantity_placeholder">e.g., 2 cups or 500g</string>
+    <string name="notes_optional">Notes (optional)</string>
+    <string name="notes_placeholder">e.g., diced, room temperature</string>
+
+    <!-- Steps Section -->
+    <string name="steps_section">Steps</string>
+    <string name="step_instruction">Step %1$d Instruction *</string>
+    <string name="step_instruction_placeholder">Describe what to do in this step</string>
+    <string name="step_duration">Duration (min, optional)</string>
+    <string name="step_duration_placeholder">5</string>
+    <string name="add_step">Add Step</string>
+    <string name="remove_step">Remove Step</string>
+    <string name="no_steps_message">No steps added yet. Click \"Add Step\" to start.</string>
+    <string name="instruction_field">Instruction *</string>
+    <string name="instruction_placeholder">Describe what to do in this step</string>
+    <string name="duration_field">Duration (min)</string>
+    <string name="duration_placeholder">10</string>
+    <string name="tips_optional">Tips (optional)</string>
+    <string name="tips_placeholder">Helpful hints for this step</string>
+    <string name="media_items_attached">%1$d media item(s) attached</string>
+
+    <!-- Media Picker -->
+    <string name="add_photo">Add Photo</string>
+    <string name="remove_photo">Remove</string>
+    <string name="media_selection">Media Selection</string>
+    <string name="photo_video_selection_info">Photo/Video selection will be available after camera and gallery integration.</string>
+    <string name="photo_json_info">For now, you can add photos by editing the JSON recipe files directly.</string>
+    <string name="camera_gallery_coming_soon">Camera and gallery integration coming soon</string>
+    <string name="ok">OK</string>
+
+    <!-- Exit Confirmation Dialog -->
+    <string name="unsaved_changes_title">Unsaved Changes</string>
+    <string name="unsaved_changes_message">You have unsaved changes. What would you like to do?</string>
+    <string name="stay_and_continue">Stay</string>
+    <string name="save_draft_and_exit">Save Draft and Exit</string>
+    <string name="discard_and_exit">Discard and Exit</string>
+
+    <!-- Draft Recovery Dialog -->
+    <string name="draft_found_title">Draft Found</string>
+    <string name="draft_found_message">You have an unfinished recipe draft. Would you like to continue editing it?</string>
+    <string name="continue_draft">Continue Draft</string>
+    <string name="start_fresh">Start Fresh</string>
+
+    <!-- Recipe Categories -->
+    <string name="category_breakfast">Breakfast</string>
+    <string name="category_lunch">Lunch</string>
+    <string name="category_dinner">Dinner</string>
+    <string name="category_dessert">Dessert</string>
+    <string name="category_snack">Snack</string>
+    <string name="category_appetizer">Appetizer</string>
+    <string name="category_vegetarian">Vegetarian</string>
+    <string name="category_vegan">Vegan</string>
+    <string name="category_gluten_free">Gluten Free</string>
+    <string name="category_dairy_free">Dairy Free</string>
+    <string name="category_italian">Italian</string>
+    <string name="category_polish">Polish</string>
+    <string name="category_asian">Asian</string>
+    <string name="category_mexican">Mexican</string>
+    <string name="category_greek">Greek</string>
+    <string name="category_american">American</string>
+    <string name="category_quick_meal">Quick Meal</string>
+    <string name="category_meal_prep">Meal Prep</string>
+    <string name="category_party">Party</string>
+    <string name="category_holiday">Holiday</string>
 </resources>

@@ -53,7 +53,7 @@ fun IngredientInputList(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Add")
+                Text(stringResource(R.string.add))
             }
         }
 
@@ -66,7 +66,7 @@ fun IngredientInputList(
                 )
             ) {
                 Text(
-                    text = "No ingredients added yet. Click \"Add\" to start.",
+                    text = stringResource(R.string.no_ingredients_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)
@@ -83,8 +83,12 @@ fun IngredientInputList(
                         onIngredientsChange(updatedList)
                     },
                     onRemove = {
-                        onIngredientsChange(ingredients.filterIndexed { i, _ -> i != index })
-                    }
+                        // Only allow removal if there's more than 1 ingredient
+                        if (ingredients.size > 1) {
+                            onIngredientsChange(ingredients.filterIndexed { i, _ -> i != index })
+                        }
+                    },
+                    canRemove = ingredients.size > 1
                 )
             }
         }
@@ -100,6 +104,7 @@ fun IngredientInputItem(
     index: Int,
     onIngredientChange: (Ingredient) -> Unit,
     onRemove: () -> Unit,
+    canRemove: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -118,7 +123,7 @@ fun IngredientInputItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Ingredient ${index + 1}",
+                    text = stringResource(R.string.ingredient_number, index + 1),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -126,12 +131,13 @@ fun IngredientInputItem(
 
                 IconButton(
                     onClick = onRemove,
+                    enabled = canRemove,
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Remove ingredient",
-                        tint = MaterialTheme.colorScheme.error,
+                        contentDescription = stringResource(R.string.remove_ingredient),
+                        tint = if (canRemove) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -143,8 +149,8 @@ fun IngredientInputItem(
             OutlinedTextField(
                 value = ingredient.name,
                 onValueChange = { onIngredientChange(ingredient.copy(name = it)) },
-                label = { Text("Name *") },
-                placeholder = { Text("e.g., Tomatoes") },
+                label = { Text(stringResource(R.string.name_field)) },
+                placeholder = { Text(stringResource(R.string.name_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp)
@@ -156,8 +162,8 @@ fun IngredientInputItem(
             OutlinedTextField(
                 value = ingredient.quantity,
                 onValueChange = { onIngredientChange(ingredient.copy(quantity = it)) },
-                label = { Text("Quantity *") },
-                placeholder = { Text("e.g., 2 cups or 500g") },
+                label = { Text(stringResource(R.string.quantity_field)) },
+                placeholder = { Text(stringResource(R.string.quantity_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp)
@@ -171,8 +177,8 @@ fun IngredientInputItem(
                 onValueChange = {
                     onIngredientChange(ingredient.copy(notes = if (it.isBlank()) null else it))
                 },
-                label = { Text("Notes (optional)") },
-                placeholder = { Text("e.g., diced, room temperature") },
+                label = { Text(stringResource(R.string.notes_optional)) },
+                placeholder = { Text(stringResource(R.string.notes_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp)

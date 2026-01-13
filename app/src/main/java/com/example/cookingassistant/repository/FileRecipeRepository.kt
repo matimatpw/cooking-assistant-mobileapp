@@ -15,7 +15,7 @@ import java.io.File
 import java.util.UUID
 
 /**
- * File-based implementation of RecipeRepository.
+ * File-based implementation of LocalRecipeDataSource.
  * Stores recipes as JSON files in internal storage with an index for fast lookups.
  *
  * @param context Android context for accessing file system
@@ -26,7 +26,7 @@ class FileRecipeRepository(
     private val context: Context,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val recipesDirectoryName: String = "recipes"
-) : RecipeRepository {
+) : LocalRecipeDataSource {
 
     private val recipesDir = File(context.filesDir, recipesDirectoryName)
     private val bundledDir = File(recipesDir, "bundled")
@@ -270,6 +270,110 @@ class FileRecipeRepository(
             lastUpdated = System.currentTimeMillis()
         )
         saveIndex(updatedIndex)
+    }
+
+    override suspend fun saveRecipes(recipes: List<Recipe>): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            Log.d(TAG, "Saving ${recipes.size} recipes to local storage...")
+            recipes.forEach { recipe ->
+                saveRecipe(recipe)
+            }
+            Log.d(TAG, "Successfully saved ${recipes.size} recipes")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save recipes batch", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun saveBundledRecipes(recipes: List<Recipe>): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            Log.d(TAG, "Saving ${recipes.size} bundled recipes from API...")
+
+            // Get current index and preserve custom recipe entries
+            val currentIndex = loadIndex()
+            val customRecipeEntries = currentIndex.recipes.filter { it.isCustom }
+            Log.d(TAG, "Preserving ${customRecipeEntries.size} custom recipe entries in index")
+
+            // Clear existing bundled recipe files
+            bundledDir.listFiles()?.forEach { file ->
+                if (file.isFile && file.extension == "json") {
+                    file.delete()
+                    Log.d(TAG, "Deleted old bundled recipe file: ${file.name}")
+                }
+            }
+
+            // Create new bundled recipe entries
+            val newBundledEntries = mutableListOf<RecipeIndexEntry>()
+
+            // Save each recipe to bundled directory
+            recipes.forEachIndexed { index, recipe ->
+                val now = System.currentTimeMillis()
+
+                // Ensure recipe is marked as bundled (not custom)
+                val bundledRecipe = recipe.copy(
+                    id = recipe.id.ifEmpty { (index + 1).toString().padStart(3, '0') },
+                    updatedAt = now,
+                    createdAt = if (recipe.createdAt == 0L) now else recipe.createdAt,
+                    isCustom = false  // Mark as bundled recipe
+                )
+
+                // Save to bundled directory
+                val recipeFile = File(bundledDir, "recipe_${bundledRecipe.id}.json")
+                recipeFile.writeText(json.encodeToString(bundledRecipe))
+                Log.d(TAG, "Saved bundled recipe: ${bundledRecipe.name}")
+
+                // Create index entry for this bundled recipe
+                val relativePath = recipeFile.relativeTo(recipesDir).path
+                val indexEntry = RecipeIndexEntry(
+                    id = bundledRecipe.id,
+                    name = bundledRecipe.name,
+                    filePath = relativePath,
+                    categories = bundledRecipe.categories.toList(),
+                    isCustom = false,
+                    thumbnail = bundledRecipe.mainPhotoUri
+                )
+                newBundledEntries.add(indexEntry)
+            }
+
+            // Update index with new bundled entries + preserved custom entries
+            val updatedIndex = currentIndex.copy(
+                recipes = newBundledEntries + customRecipeEntries,
+                lastUpdated = System.currentTimeMillis()
+            )
+            saveIndex(updatedIndex)
+
+            Log.d(TAG, "Successfully saved ${recipes.size} bundled recipes, index now has ${updatedIndex.recipes.size} total entries")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save bundled recipes", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun clearAllRecipes(): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            Log.d(TAG, "Clearing all recipes from local storage...")
+
+            // Delete all recipe files
+            bundledDir.deleteRecursively()
+            customDir.deleteRecursively()
+
+            // Recreate directory structure
+            bundledDir.mkdirs()
+            customDir.mkdirs()
+            File(bundledDir, "media").mkdirs()
+            File(customDir, "media").mkdirs()
+
+            // Clear index
+            createEmptyIndex()
+
+            Log.d(TAG, "All recipes cleared successfully")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to clear all recipes", e)
+            Result.failure(e)
+        }
     }
 
     /**

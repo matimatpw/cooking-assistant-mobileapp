@@ -3,6 +3,7 @@ package com.example.cookingassistant.ui.theme
 import android.app.Activity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,9 +34,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,6 +53,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -55,7 +61,36 @@ import com.example.cookingassistant.R
 import com.example.cookingassistant.model.Difficulty
 import com.example.cookingassistant.model.Recipe
 import com.example.cookingassistant.util.LocaleManager
+import com.example.cookingassistant.viewmodel.RecipeListState
 import com.example.cookingassistant.viewmodel.RecipeViewModel
+
+/**
+ * Tab row for switching between Explore and My Recipes tabs
+ */
+@Composable
+fun RecipeListTabs(
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TabRow(
+        selectedTabIndex = selectedTabIndex,
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    ) {
+        Tab(
+            selected = selectedTabIndex == 0,
+            onClick = { onTabSelected(0) },
+            text = { Text(stringResource(R.string.explore_tab)) }
+        )
+        Tab(
+            selected = selectedTabIndex == 1,
+            onClick = { onTabSelected(1) },
+            text = { Text(stringResource(R.string.my_recipes_tab)) }
+        )
+    }
+}
 
 /**
  * Main screen displaying list of recipes
@@ -68,8 +103,9 @@ fun RecipeListScreen(
     onRecipeClick: (String) -> Unit,
     onAddRecipe: () -> Unit = {}
 ) {
-    // Collect state from ViewModel - UI automatically updates when state changes
-    val recipes by viewModel.recipes.collectAsState()
+    // Collect UI state from ViewModel - automatically updates when state changes
+    val state by viewModel.state.collectAsState()
+    val selectedTabIndex by viewModel.selectedTabIndex.collectAsState()
     val context = LocalContext.current
     var showLanguageMenu by remember { mutableStateOf(false) }
 
@@ -113,19 +149,125 @@ fun RecipeListScreen(
             }
         }
     ) { padding ->
-        // Display list of recipes
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(padding)
         ) {
-            items(recipes) { recipe ->
-                RecipeListItem(
-                    recipe = recipe,
-                    onClick = { onRecipeClick(recipe.id) }
-                )
+            // Tab row for switching between Explore and My Recipes
+            RecipeListTabs(
+                selectedTabIndex = selectedTabIndex,
+                onTabSelected = { viewModel.selectTab(it) }
+            )
+
+            // Handle different UI states
+            when (val currentState = state) {
+                is RecipeListState.Loading -> {
+                // Show loading spinner on initial load
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            is RecipeListState.Success -> {
+                // Filter recipes based on selected tab
+                val displayedRecipes = viewModel.getRecipesForTab(selectedTabIndex, currentState.recipes)
+
+                // Show recipe list with pull-to-refresh
+                PullToRefreshBox(
+                    isRefreshing = currentState.isRefreshing,
+                    onRefresh = { viewModel.refreshRecipes() },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    if (displayedRecipes.isEmpty()) {
+                        // Show tab-specific empty state with fillMaxSize to enable pull-to-refresh
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = if (selectedTabIndex == 0) {
+                                        stringResource(R.string.no_explore_recipes)
+                                    } else {
+                                        stringResource(R.string.no_custom_recipes)
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    } else {
+                        // Show recipe list
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(displayedRecipes) { recipe ->
+                                RecipeListItem(
+                                    recipe = recipe,
+                                    onClick = { onRecipeClick(recipe.id) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            is RecipeListState.Error -> {
+                // Show error with cached recipes if available
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Error message at top
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.errorContainer
+                    ) {
+                        Text(
+                            text = currentState.message,
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    // Show cached recipes if available
+                    if (currentState.cachedRecipes.isNotEmpty()) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(currentState.cachedRecipes) { recipe ->
+                                RecipeListItem(
+                                    recipe = recipe,
+                                    onClick = { onRecipeClick(recipe.id) }
+                                )
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.no_recipes_available),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
             }
         }
     }
@@ -249,10 +391,10 @@ fun RecipeListItem(
  */
 @Composable
 fun DifficultyBadge(difficulty: Difficulty) {
-    val (color, text) = when (difficulty) {
-        Difficulty.EASY -> MaterialTheme.colorScheme.tertiary to "Easy"
-        Difficulty.MEDIUM -> MaterialTheme.colorScheme.primary to "Medium"
-        Difficulty.HARD -> MaterialTheme.colorScheme.error to "Hard"
+    val (color, textResId) = when (difficulty) {
+        Difficulty.EASY -> MaterialTheme.colorScheme.tertiary to R.string.difficulty_easy
+        Difficulty.MEDIUM -> MaterialTheme.colorScheme.primary to R.string.difficulty_medium
+        Difficulty.HARD -> MaterialTheme.colorScheme.error to R.string.difficulty_hard
     }
 
     Surface(
@@ -261,7 +403,7 @@ fun DifficultyBadge(difficulty: Difficulty) {
         modifier = Modifier.padding(0.dp)
     ) {
         Text(
-            text = text,
+            text = stringResource(textResId),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -274,12 +416,40 @@ fun DifficultyBadge(difficulty: Difficulty) {
  */
 @Composable
 fun CategoryChip(category: String) {
+    val categoryResId = when (category.uppercase()) {
+        "BREAKFAST" -> R.string.category_breakfast
+        "LUNCH" -> R.string.category_lunch
+        "DINNER" -> R.string.category_dinner
+        "DESSERT" -> R.string.category_dessert
+        "SNACK" -> R.string.category_snack
+        "APPETIZER" -> R.string.category_appetizer
+        "VEGETARIAN" -> R.string.category_vegetarian
+        "VEGAN" -> R.string.category_vegan
+        "GLUTEN_FREE" -> R.string.category_gluten_free
+        "DAIRY_FREE" -> R.string.category_dairy_free
+        "ITALIAN" -> R.string.category_italian
+        "POLISH" -> R.string.category_polish
+        "ASIAN" -> R.string.category_asian
+        "MEXICAN" -> R.string.category_mexican
+        "GREEK" -> R.string.category_greek
+        "AMERICAN" -> R.string.category_american
+        "QUICK_MEAL" -> R.string.category_quick_meal
+        "MEAL_PREP" -> R.string.category_meal_prep
+        "PARTY" -> R.string.category_party
+        "HOLIDAY" -> R.string.category_holiday
+        else -> null
+    }
+
     Surface(
         color = MaterialTheme.colorScheme.secondaryContainer,
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(
-            text = category.lowercase().replace("_", " "),
+            text = if (categoryResId != null) {
+                stringResource(categoryResId)
+            } else {
+                category.lowercase().replace("_", " ")
+            },
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

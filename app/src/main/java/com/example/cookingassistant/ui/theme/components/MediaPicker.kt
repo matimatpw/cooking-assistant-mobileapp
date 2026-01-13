@@ -11,8 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.cookingassistant.R
 
 /**
  * Media picker component for selecting photos/videos
@@ -65,7 +67,7 @@ fun MediaPickerButton(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AddPhotoAlternate,
-                                contentDescription = "Remove",
+                                contentDescription = stringResource(R.string.remove_photo),
                                 modifier = Modifier.padding(8.dp)
                             )
                         }
@@ -83,7 +85,7 @@ fun MediaPickerButton(
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add Photo")
+                Text(stringResource(R.string.add_photo))
             }
         }
     }
@@ -92,14 +94,14 @@ fun MediaPickerButton(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Add Photo") },
+            title = { Text(stringResource(R.string.add_photo)) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Photo/Video selection will be available after camera and gallery integration.")
+                    Text(stringResource(R.string.photo_video_selection_info))
                     Text(
-                        "For now, you can add photos by editing the JSON recipe files directly.",
+                        stringResource(R.string.photo_json_info),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -107,7 +109,7 @@ fun MediaPickerButton(
             },
             confirmButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("OK")
+                    Text(stringResource(R.string.ok))
                 }
             }
         )
@@ -145,12 +147,12 @@ fun MediaPickerPlaceholder(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Media Selection",
+                    text = stringResource(R.string.media_selection),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
-                    text = "Camera and gallery integration coming soon",
+                    text = stringResource(R.string.camera_gallery_coming_soon),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )

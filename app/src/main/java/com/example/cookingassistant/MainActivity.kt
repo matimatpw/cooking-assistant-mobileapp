@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.example.cookingassistant.navigation.CookingAssistantNavigation
+import com.example.cookingassistant.repository.CachedRecipeRepository
 import com.example.cookingassistant.repository.FileRecipeRepository
+import com.example.cookingassistant.repository.MockRemoteDataSource
 import com.example.cookingassistant.ui.theme.CookingAssistantTheme
 import com.example.cookingassistant.util.BundledRecipesInstaller
 import com.example.cookingassistant.util.LocaleManager
@@ -35,8 +37,14 @@ class MainActivity : ComponentActivity() {
             CookingAssistantTheme {
                 val navController = rememberNavController()
 
-                // Create repository instance
-                val repository = remember { FileRecipeRepository(applicationContext) }
+                // Create data source instances and repository
+                // In the future, replace MockRemoteDataSource with real API client
+                val repository = remember {
+                    CachedRecipeRepository(
+                        localDataSource = FileRecipeRepository(applicationContext),
+                        remoteDataSource = MockRemoteDataSource(networkDelayMs = 1000)
+                    )
+                }
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),

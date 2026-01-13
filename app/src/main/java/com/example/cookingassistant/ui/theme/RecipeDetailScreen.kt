@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,7 +52,8 @@ import com.example.cookingassistant.model.Recipe
 fun RecipeDetailScreen(
     recipe: Recipe,
     onNavigateBack: () -> Unit,
-    onStartCooking: (String) -> Unit
+    onStartCooking: (String) -> Unit,
+    onEdit: (String) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -65,10 +67,19 @@ fun RecipeDetailScreen(
                         )
                     }
                 },
+                actions = {
+                    IconButton(onClick = { onEdit(recipe.id) }) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = stringResource(R.string.edit_recipe)
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         },
