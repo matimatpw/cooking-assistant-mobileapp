@@ -1,0 +1,32 @@
+{
+  "id": "005",
+  "name": "Banana Smoothie",
+  "description": "Creamy and refreshing banana smoothie - perfect for breakfast",
+  "mainPhotoUri": null,
+  "ingredients": [
+    {"name": "ripe bananas", "quantity": "2", "notes": null},
+    {"name": "milk", "quantity": "1 cup", "notes": "dairy or plant-based"},
+    {"name": "Greek yogurt", "quantity": "1/2 cup", "notes": null},
+    {"name": "honey", "quantity": "1 tbsp", "notes": null},
+    {"name": "vanilla extract", "quantity": "1/2 tsp", "notes": null},
+    {"name": "ice cubes", "quantity": "1 cup", "notes": null},
+    {"name": "cinnamon", "quantity": "pinch", "notes": "optional"}
+  ],
+  "steps": [
+    {"stepNumber": 1, "instruction": "Peel bananas and break into chunks.", "durationMinutes": 1, "mediaItems": [], "tips": null},
+    {"stepNumber": 2, "instruction": "Add all ingredients to a blender.", "durationMinutes": 1, "mediaItems": [], "tips": null},
+    {"stepNumber": 3, "instruction": "Blend on high speed until smooth and creamy, about 30-60 seconds.", "durationMinutes": 1, "mediaItems": [], "tips": null},
+    {"stepNumber": 4, "instruction": "Taste and adjust sweetness with more honey if desired.", "durationMinutes": 1, "mediaItems": [], "tips": null},
+    {"stepNumber": 5, "instruction": "Pour into glasses and serve immediately.", "durationMinutes": 1, "mediaItems": [], "tips": null},
+    {"stepNumber": 6, "instruction": "Optional: sprinkle with cinnamon on top.", "durationMinutes": null, "mediaItems": [], "tips": null}
+  ],
+  "cookingTime": 5,
+  "prepTime": 5,
+  "servings": 2,
+  "difficulty": "EASY",
+  "categories": ["BREAKFAST", "QUICK_MEAL", "VEGETARIAN"],
+  "tags": ["smoothie", "breakfast", "banana", "quick", "healthy"],
+  "createdAt": 1704067200000,
+  "updatedAt": 1704067200000,
+  "isCustom": false
+}

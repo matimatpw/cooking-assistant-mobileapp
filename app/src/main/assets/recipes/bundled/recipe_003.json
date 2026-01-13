@@ -1,0 +1,37 @@
+{
+  "id": "003",
+  "name": "Chocolate Chip Cookies",
+  "description": "Classic homemade chocolate chip cookies - crispy edges with soft centers",
+  "mainPhotoUri": null,
+  "ingredients": [
+    {"name": "all-purpose flour", "quantity": "2 1/4 cups", "notes": null},
+    {"name": "baking soda", "quantity": "1 tsp", "notes": null},
+    {"name": "salt", "quantity": "1 tsp", "notes": null},
+    {"name": "butter", "quantity": "1 cup", "notes": "softened"},
+    {"name": "granulated sugar", "quantity": "3/4 cup", "notes": null},
+    {"name": "brown sugar", "quantity": "3/4 cup", "notes": null},
+    {"name": "eggs", "quantity": "2 large", "notes": null},
+    {"name": "vanilla extract", "quantity": "2 tsp", "notes": null},
+    {"name": "chocolate chips", "quantity": "2 cups", "notes": null}
+  ],
+  "steps": [
+    {"stepNumber": 1, "instruction": "Preheat oven to 375°F (190°C).", "durationMinutes": 5, "mediaItems": [], "tips": null},
+    {"stepNumber": 2, "instruction": "Mix flour, baking soda, and salt in a bowl.", "durationMinutes": 2, "mediaItems": [], "tips": null},
+    {"stepNumber": 3, "instruction": "In another bowl, beat butter and both sugars until creamy.", "durationMinutes": 3, "mediaItems": [], "tips": null},
+    {"stepNumber": 4, "instruction": "Add eggs and vanilla to the butter mixture, beat well.", "durationMinutes": 2, "mediaItems": [], "tips": null},
+    {"stepNumber": 5, "instruction": "Gradually blend in the flour mixture.", "durationMinutes": 2, "mediaItems": [], "tips": null},
+    {"stepNumber": 6, "instruction": "Stir in chocolate chips.", "durationMinutes": 1, "mediaItems": [], "tips": null},
+    {"stepNumber": 7, "instruction": "Drop rounded tablespoons of dough onto ungreased cookie sheets.", "durationMinutes": 3, "mediaItems": [], "tips": null},
+    {"stepNumber": 8, "instruction": "Bake for 9-11 minutes or until golden brown.", "durationMinutes": 10, "mediaItems": [], "tips": null},
+    {"stepNumber": 9, "instruction": "Cool on baking sheet for 2 minutes, then transfer to a wire rack.", "durationMinutes": 2, "mediaItems": [], "tips": null}
+  ],
+  "cookingTime": 30,
+  "prepTime": 15,
+  "servings": 24,
+  "difficulty": "EASY",
+  "categories": ["DESSERT", "AMERICAN", "PARTY"],
+  "tags": ["cookies", "dessert", "baking", "chocolate"],
+  "createdAt": 1704067200000,
+  "updatedAt": 1704067200000,
+  "isCustom": false
+}
