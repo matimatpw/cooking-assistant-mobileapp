@@ -113,21 +113,37 @@ fun AddEditRecipeScreen(
     // Check if there are unsaved changes
     val hasUnsavedChanges = remember(
         name, description, mainPhotoUri, prepTime, cookingTime, servings,
-        difficulty, selectedCategories, tags, ingredients, steps
+        difficulty, selectedCategories, tags, ingredients, steps, existingRecipe
     ) {
-        name.isNotBlank() ||
-        description.isNotBlank() ||
-        mainPhotoUri != existingRecipe?.mainPhotoUri ||
-        prepTime.isNotBlank() ||
-        cookingTime.isNotBlank() ||
-        servings.isNotBlank() ||
-        difficulty != (existingRecipe?.difficulty ?: Difficulty.MEDIUM) ||
-        selectedCategories != (existingRecipe?.categories ?: emptySet<RecipeCategory>()) ||
-        tags.isNotBlank() ||
-        ingredients.size > 1 ||
-        (ingredients.size == 1 && (ingredients[0].name.isNotBlank() || ingredients[0].quantity.isNotBlank())) ||
-        steps.size > 1 ||
-        (steps.size == 1 && steps[0].instruction.isNotBlank())
+        if (existingRecipe != null) {
+            // When editing: check if anything changed from original
+            name != existingRecipe.name ||
+            description != existingRecipe.description ||
+            mainPhotoUri != existingRecipe.mainPhotoUri ||
+            prepTime != (existingRecipe.prepTime?.toString() ?: "") ||
+            cookingTime != existingRecipe.cookingTime.toString() ||
+            servings != existingRecipe.servings.toString() ||
+            difficulty != existingRecipe.difficulty ||
+            selectedCategories != existingRecipe.categories ||
+            tags != existingRecipe.tags.joinToString(", ") ||
+            ingredients != existingRecipe.ingredients ||
+            steps != existingRecipe.steps
+        } else {
+            // When adding: check if any field has content
+            name.isNotBlank() ||
+            description.isNotBlank() ||
+            mainPhotoUri != null ||
+            prepTime.isNotBlank() ||
+            cookingTime.isNotBlank() ||
+            servings.isNotBlank() ||
+            difficulty != Difficulty.MEDIUM ||
+            selectedCategories.isNotEmpty() ||
+            tags.isNotBlank() ||
+            ingredients.size > 1 ||
+            (ingredients.size == 1 && (ingredients[0].name.isNotBlank() || ingredients[0].quantity.isNotBlank())) ||
+            steps.size > 1 ||
+            (steps.size == 1 && steps[0].instruction.isNotBlank())
+        }
     }
 
     // Handle back button press
@@ -412,53 +428,78 @@ fun AddEditRecipeScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Option 1: Save Draft and Exit
-                    Button(
-                        onClick = {
-                            showExitDialog = false
-                            // Save as draft
-                            val draft = RecipeDraft(
-                                recipeId = recipeId,
-                                name = name,
-                                description = description,
-                                mainPhotoUri = mainPhotoUri,
-                                prepTime = prepTime,
-                                cookingTime = cookingTime,
-                                servings = servings,
-                                difficulty = difficulty,
-                                selectedCategories = selectedCategories,
-                                tags = tags,
-                                ingredients = ingredients,
-                                steps = steps
-                            )
-                            viewModel.saveDraft(draft)
-                            onCancel()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.save_draft_and_exit))
-                    }
+                    // When editing existing recipe: only show discard and stay options
+                    // When creating new recipe: show save draft, discard, and stay options
+                    if (recipeId != null) {
+                        // Option 1: Discard and Exit
+                        Button(
+                            onClick = {
+                                showExitDialog = false
+                                onCancel()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.discard_and_exit))
+                        }
 
-                    // Option 2: Discard and Exit
-                    OutlinedButton(
-                        onClick = {
-                            showExitDialog = false
-                            viewModel.clearDraft()
-                            onCancel()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.discard_and_exit))
-                    }
+                        // Option 2: Stay
+                        OutlinedButton(
+                            onClick = {
+                                showExitDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.stay_and_continue))
+                        }
+                    } else {
+                        // Option 1: Save Draft and Exit (only for new recipes)
+                        Button(
+                            onClick = {
+                                showExitDialog = false
+                                // Save as draft
+                                val draft = RecipeDraft(
+                                    recipeId = recipeId,
+                                    name = name,
+                                    description = description,
+                                    mainPhotoUri = mainPhotoUri,
+                                    prepTime = prepTime,
+                                    cookingTime = cookingTime,
+                                    servings = servings,
+                                    difficulty = difficulty,
+                                    selectedCategories = selectedCategories,
+                                    tags = tags,
+                                    ingredients = ingredients,
+                                    steps = steps
+                                )
+                                viewModel.saveDraft(draft)
+                                onCancel()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.save_draft_and_exit))
+                        }
 
-                    // Option 3: Stay
-                    TextButton(
-                        onClick = {
-                            showExitDialog = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.stay_and_continue))
+                        // Option 2: Discard and Exit
+                        OutlinedButton(
+                            onClick = {
+                                showExitDialog = false
+                                viewModel.clearDraft()
+                                onCancel()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.discard_and_exit))
+                        }
+
+                        // Option 3: Stay
+                        TextButton(
+                            onClick = {
+                                showExitDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.stay_and_continue))
+                        }
                     }
                 }
             },

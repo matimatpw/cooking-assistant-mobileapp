@@ -1,21 +1,43 @@
 package com.example.cookingassistant.ui.theme.components
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.cookingassistant.R
+import com.example.cookingassistant.model.MediaType
 import com.example.cookingassistant.model.RecipeStep
+import com.example.cookingassistant.model.StepMedia
 
 /**
  * Dynamic recipe step input list component
@@ -269,21 +291,124 @@ fun StepInputItem(
                 shape = RoundedCornerShape(8.dp)
             )
 
-            // Media items section (simplified for now - can add MediaPicker later)
-            if (step.mediaItems.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.media_items_attached, step.mediaItems.size),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(8.dp)
-                    )
+            // Media items section
+            Spacer(modifier = Modifier.height(8.dp))
+
+            StepMediaPicker(
+                mediaItems = step.mediaItems,
+                onMediaItemsChange = { newMediaItems ->
+                    onStepChange(step.copy(mediaItems = newMediaItems))
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Media picker for recipe step
+ * Allows adding multiple photos/videos to a step
+ */
+@Composable
+fun StepMediaPicker(
+    mediaItems: List<StepMedia>,
+    onMediaItemsChange: (List<StepMedia>) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.step_media),
+            style = MaterialTheme.typography.labelMedium
+        )
+
+        // Display existing media items
+        if (mediaItems.isNotEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                mediaItems.forEachIndexed { index, mediaItem ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Media preview
+                            AsyncImage(
+                                model = mediaItem.uri,
+                                contentDescription = mediaItem.caption,
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                contentScale = ContentScale.Fit
+                            )
+
+                            // Media type and caption
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = when (mediaItem.type) {
+                                        MediaType.PHOTO -> stringResource(R.string.photo)
+                                        MediaType.VIDEO -> stringResource(R.string.video)
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                if (mediaItem.caption != null) {
+                                    Text(
+                                        text = mediaItem.caption,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+
+                            // Remove button
+                            IconButton(
+                                onClick = {
+                                    val updatedList = mediaItems.filterIndexed { i, _ -> i != index }
+                                    onMediaItemsChange(updatedList)
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.remove_media),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
+
+        // Add media button
+        MediaPickerButton(
+            label = if (mediaItems.isEmpty())
+                stringResource(R.string.add_step_photo)
+            else
+                stringResource(R.string.add_another_photo),
+            currentMediaUri = null,
+            onMediaSelected = { uri ->
+                uri?.let {
+                    val newMediaItem = StepMedia(
+                        type = MediaType.PHOTO,
+                        uri = it.toString(),
+                        caption = null,
+                        thumbnailUri = null
+                    )
+                    onMediaItemsChange(mediaItems + newMediaItem)
+                }
+            }
+        )
     }
 }

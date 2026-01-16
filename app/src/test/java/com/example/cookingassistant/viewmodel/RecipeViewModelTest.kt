@@ -1,5 +1,8 @@
 package com.example.cookingassistant.viewmodel
 
+import com.example.cookingassistant.model.Difficulty
+import com.example.cookingassistant.model.RecipeCategory
+import com.example.cookingassistant.model.RecipeFilters
 import com.example.cookingassistant.voice.VoiceCommand
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -10,11 +13,14 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Unit tests for RecipeViewModel
  * Demonstrates how to test step navigation and voice command processing without running the app
  */
+@RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecipeViewModelTest {
 
@@ -226,5 +232,230 @@ class RecipeViewModelTest {
         // Repeat stays at step 0
         viewModel.processVoiceCommand(VoiceCommand.REPEAT)
         assertThat(viewModel.currentStepIndex.value).isEqualTo(0)
+    }
+
+    // ========== Filtering Tests ==========
+
+    @Test
+    fun filters_are_initially_empty() {
+        val filters = viewModel.filters.value
+
+        assertThat(filters.hasActiveFilters()).isFalse()
+        assertThat(filters.mealTypes).isEmpty()
+        assertThat(filters.dietaryPreferences).isEmpty()
+        assertThat(filters.cuisines).isEmpty()
+        assertThat(filters.difficulties).isEmpty()
+        assertThat(filters.maxCookingTime).isNull()
+        assertThat(filters.minCookingTime).isNull()
+    }
+
+    @Test
+    fun update_filters_changes_filter_state() {
+        val newFilters = RecipeFilters(
+            mealTypes = setOf(RecipeCategory.BREAKFAST),
+            difficulties = setOf(Difficulty.EASY)
+        )
+
+        viewModel.updateFilters(newFilters)
+
+        assertThat(viewModel.filters.value).isEqualTo(newFilters)
+        assertThat(viewModel.filters.value.hasActiveFilters()).isTrue()
+    }
+
+    @Test
+    fun clear_filters_resets_to_empty_filters() {
+        val newFilters = RecipeFilters(
+            mealTypes = setOf(RecipeCategory.BREAKFAST),
+            difficulties = setOf(Difficulty.EASY)
+        )
+        viewModel.updateFilters(newFilters)
+
+        viewModel.clearFilters()
+
+        assertThat(viewModel.filters.value.hasActiveFilters()).isFalse()
+    }
+
+    @Test
+    fun apply_filters_returns_all_recipes_when_no_filters_active() {
+        val recipes = viewModel.recipes.value
+        val emptyFilters = RecipeFilters()
+
+        val filtered = viewModel.applyFilters(recipes, emptyFilters)
+
+        assertThat(filtered).hasSize(recipes.size)
+        assertThat(filtered).isEqualTo(recipes)
+    }
+
+    @Test
+    fun apply_filters_by_meal_type_returns_matching_recipes() {
+        val recipes = viewModel.recipes.value
+        val filters = RecipeFilters(mealTypes = setOf(RecipeCategory.BREAKFAST))
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.categories).contains(RecipeCategory.BREAKFAST)
+        }
+    }
+
+    @Test
+    fun apply_filters_by_difficulty_returns_matching_recipes() {
+        val recipes = viewModel.recipes.value
+        val filters = RecipeFilters(difficulties = setOf(Difficulty.EASY))
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.difficulty).isEqualTo(Difficulty.EASY)
+        }
+    }
+
+    @Test
+    fun apply_filters_by_cuisine_returns_matching_recipes() {
+        val recipes = viewModel.recipes.value
+        val filters = RecipeFilters(cuisines = setOf(RecipeCategory.ITALIAN))
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.categories).contains(RecipeCategory.ITALIAN)
+        }
+    }
+
+    @Test
+    fun apply_filters_by_dietary_preference_returns_matching_recipes() {
+        val recipes = viewModel.recipes.value
+        val filters = RecipeFilters(dietaryPreferences = setOf(RecipeCategory.VEGETARIAN))
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.categories).contains(RecipeCategory.VEGETARIAN)
+        }
+    }
+
+    @Test
+    fun apply_filters_by_max_cooking_time_returns_matching_recipes() {
+        val recipes = viewModel.recipes.value
+        val maxTime = 15
+        val filters = RecipeFilters(maxCookingTime = maxTime)
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.cookingTime).isLessThanOrEqualTo(maxTime)
+        }
+    }
+
+    @Test
+    fun apply_filters_by_min_cooking_time_returns_matching_recipes() {
+        val recipes = viewModel.recipes.value
+        val minTime = 20
+        val filters = RecipeFilters(minCookingTime = minTime)
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.cookingTime).isGreaterThanOrEqualTo(minTime)
+        }
+    }
+
+    @Test
+    fun apply_filters_by_cooking_time_range_returns_matching_recipes() {
+        val recipes = viewModel.recipes.value
+        val minTime = 10
+        val maxTime = 20
+        val filters = RecipeFilters(minCookingTime = minTime, maxCookingTime = maxTime)
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.cookingTime).isBetween(minTime, maxTime)
+        }
+    }
+
+    @Test
+    fun apply_multiple_filters_returns_recipes_matching_all_criteria() {
+        val recipes = viewModel.recipes.value
+        val filters = RecipeFilters(
+            difficulties = setOf(Difficulty.EASY),
+            maxCookingTime = 30
+        )
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.difficulty).isEqualTo(Difficulty.EASY)
+            assertThat(recipe.cookingTime).isLessThanOrEqualTo(30)
+        }
+    }
+
+    @Test
+    fun apply_filters_with_no_matching_recipes_returns_empty_list() {
+        val recipes = viewModel.recipes.value
+        val filters = RecipeFilters(
+            mealTypes = setOf(RecipeCategory.BREAKFAST),
+            cuisines = setOf(RecipeCategory.ITALIAN),
+            difficulties = setOf(Difficulty.HARD)
+        )
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isEmpty()
+    }
+
+    @Test
+    fun get_recipes_for_tab_applies_filters() {
+        val recipes = viewModel.recipes.value
+        viewModel.updateFilters(RecipeFilters(difficulties = setOf(Difficulty.EASY)))
+
+        val filtered = viewModel.getRecipesForTab(0, recipes)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            assertThat(recipe.difficulty).isEqualTo(Difficulty.EASY)
+            assertThat(recipe.isCustom).isFalse()
+        }
+    }
+
+    @Test
+    fun multiple_meal_types_filter_uses_or_logic() {
+        val recipes = viewModel.recipes.value
+        val filters = RecipeFilters(
+            mealTypes = setOf(RecipeCategory.BREAKFAST, RecipeCategory.LUNCH)
+        )
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        assertThat(filtered).isNotEmpty
+        filtered.forEach { recipe ->
+            val hasBreakfast = recipe.categories.contains(RecipeCategory.BREAKFAST)
+            val hasLunch = recipe.categories.contains(RecipeCategory.LUNCH)
+            assertThat(hasBreakfast || hasLunch).isTrue()
+        }
+    }
+
+    @Test
+    fun multiple_dietary_preferences_filter_uses_and_logic() {
+        val recipes = viewModel.recipes.value
+        val filters = RecipeFilters(
+            dietaryPreferences = setOf(RecipeCategory.VEGETARIAN, RecipeCategory.QUICK_MEAL)
+        )
+
+        val filtered = viewModel.applyFilters(recipes, filters)
+
+        // Recipes should have ALL dietary preferences
+        filtered.forEach { recipe ->
+            assertThat(recipe.categories).contains(RecipeCategory.VEGETARIAN)
+            assertThat(recipe.categories).contains(RecipeCategory.QUICK_MEAL)
+        }
     }
 }

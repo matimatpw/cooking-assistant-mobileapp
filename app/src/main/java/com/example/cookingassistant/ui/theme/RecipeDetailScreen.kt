@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -68,11 +68,14 @@ fun RecipeDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onEdit(recipe.id) }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = stringResource(R.string.edit_recipe)
-                        )
+                    // Only show edit button for custom (user-created) recipes
+                    if (recipe.isCustom) {
+                        IconButton(onClick = { onEdit(recipe.id) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = stringResource(R.string.edit_recipe)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -110,8 +113,8 @@ fun RecipeDetailScreen(
                     contentDescription = recipe.name,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 9f),
-                    contentScale = ContentScale.Crop
+                        .heightIn(max = 400.dp),
+                    contentScale = ContentScale.Fit
                 )
             }
 

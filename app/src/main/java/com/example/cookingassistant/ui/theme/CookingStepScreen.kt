@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,6 +26,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,7 +64,10 @@ import coil.compose.AsyncImage
 import com.example.cookingassistant.R
 import com.example.cookingassistant.model.MediaType
 import com.example.cookingassistant.model.Recipe
+import com.example.cookingassistant.timer.TimerServiceBridgeImpl
 import com.example.cookingassistant.viewmodel.RecipeViewModel
+import com.example.cookingassistant.viewmodel.TtsCallback
+import com.example.cookingassistant.voice.TextToSpeechManager
 import com.example.cookingassistant.voice.VoiceCommandManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -83,12 +89,31 @@ fun CookingStepScreen(
     // Voice command manager
     val voiceCommandManager = remember { VoiceCommandManager(context) }
 
+    // Text-to-Speech manager
+    val ttsManager = remember { TextToSpeechManager(context) }
+    val isTtsEnabled by viewModel.isTtsEnabled.collectAsState()
+    val isTtsSpeaking by ttsManager.isSpeaking.collectAsState()
+
     // State
     val currentStepIndex by viewModel.currentStepIndex.collectAsState()
     val isListening by voiceCommandManager.isListening.collectAsState()
     val recognizedText by voiceCommandManager.recognizedText.collectAsState()
     val allRecognizedText by voiceCommandManager.allRecognizedText.collectAsState()
     var isPaused by remember { mutableStateOf(false) }
+
+    // Timer state
+    val currentStepTimer by viewModel.currentStepTimer.collectAsState()
+    val allTimers by viewModel.timers.collectAsState()
+
+    // Derive active timers from the reactive timers state
+    val allActiveTimers = allTimers
+        .filter { it.value.status == com.example.cookingassistant.model.TimerStatus.RUNNING ||
+                  it.value.status == com.example.cookingassistant.model.TimerStatus.PAUSED }
+        .toList()
+        .sortedBy { it.first }
+
+    // Timer service bridge
+    val timerServiceBridge = remember { TimerServiceBridgeImpl(context) }
 
     // Flag to prevent circular updates between pager and ViewModel
     var isUpdatingFromViewModel by remember { mutableStateOf(false) }
@@ -128,10 +153,70 @@ fun CookingStepScreen(
         }
     }
 
-    // Initialize voice command manager and start auto-listening
+    // Initialize components on first composition
     LaunchedEffect(Unit) {
+        // Start cooking mode
         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         viewModel.startCookingMode(recipe)
+
+        // Initialize timer service bridge
+        timerServiceBridge.bindService(viewModel)
+        viewModel.setTimerServiceBridge(timerServiceBridge)
+
+        // Set TTS callback
+        viewModel.setTtsCallback(object : TtsCallback {
+            override fun speakInstruction(instruction: String) {
+                ttsManager.speakInstruction(instruction)
+            }
+
+            override fun speakIngredients(ingredients: List<com.example.cookingassistant.model.Ingredient>) {
+                ttsManager.speakIngredients(ingredients)
+            }
+
+            override fun speakDuration(minutes: Int) {
+                ttsManager.speakDuration(minutes)
+            }
+
+            override fun speakTips(tips: String) {
+                ttsManager.speakTips(tips)
+            }
+
+            override fun speakStepNumber(stepNumber: Int, totalSteps: Int) {
+                ttsManager.speakStepNumber(stepNumber, totalSteps)
+            }
+
+            // Timer TTS methods
+            override fun speakTimerStarted(minutes: Int) {
+                ttsManager.speakTimerStarted(minutes)
+            }
+
+            override fun speakTimerPaused(minutes: Int, seconds: Int) {
+                ttsManager.speakTimerPaused(minutes, seconds)
+            }
+
+            override fun speakTimerResumed() {
+                ttsManager.speakTimerResumed()
+            }
+
+            override fun speakTimerCancelled() {
+                ttsManager.speakTimerCancelled()
+            }
+
+            override fun speakTimerFinished(stepNumber: Int) {
+                ttsManager.speakTimerFinished(stepNumber)
+            }
+
+            override fun speakTimerStatus(minutes: Int, seconds: Int) {
+                ttsManager.speakTimerStatus(minutes, seconds)
+            }
+
+            override fun speakMessage(message: String) {
+                ttsManager.speakMessage(message)
+            }
+        })
+
+        // Then initialize TTS
+        ttsManager.initialize()
     }
 
     // Auto-start listening when permission is granted
@@ -148,6 +233,17 @@ fun CookingStepScreen(
                 enableAutoRestart = true,
                 onAutoRestart = { autoRestartListening() }
             )
+        }
+    }
+
+    // Auto-speak when step changes
+    LaunchedEffect(currentStepIndex, isTtsEnabled) {
+        if (isTtsEnabled && hasRecordPermission) {
+            delay(500) // Small delay to let UI settle
+            val step = recipe.steps.getOrNull(currentStepIndex)
+            step?.let {
+                ttsManager.speakInstruction(it.instruction)
+            }
         }
     }
 
@@ -172,6 +268,10 @@ fun CookingStepScreen(
         onDispose {
             voiceCommandManager.stopListening()
             voiceCommandManager.destroy()
+            ttsManager.stop()
+            ttsManager.destroy()
+            timerServiceBridge.unbindService()
+            viewModel.setTimerServiceBridge(null)
             viewModel.exitCookingMode()
         }
     }
@@ -204,25 +304,65 @@ fun CookingStepScreen(
             )
         },
         floatingActionButton = {
-            if (hasRecordPermission) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Timer control button (only if step has duration)
+                val currentStep = recipe.steps.getOrNull(currentStepIndex)
+                if (currentStep?.durationMinutes != null) {
+                    TimerControlButton(
+                        timer = currentStepTimer,
+                        onStartTimer = { viewModel.startTimer() },
+                        onPauseTimer = { viewModel.pauseTimer() },
+                        onResumeTimer = { viewModel.resumeTimer() },
+                        onStopTimer = { viewModel.stopTimer() }
+                    )
+                }
+
+                // Voice control toggle
+                if (hasRecordPermission) {
+                    FloatingActionButton(
+                        onClick = {
+                            isPaused = !isPaused
+                            if (isPaused) {
+                                voiceCommandManager.stopListening(isPause = true)
+                            } else {
+                                voiceCommandManager.resume()
+                                autoRestartListening()
+                            }
+                        },
+                        containerColor = if (isPaused)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.tertiary
+                    ) {
+                        Icon(
+                            imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                            contentDescription = stringResource(if (isPaused) R.string.resume_voice_control else R.string.pause_voice_control)
+                        )
+                    }
+                }
+
+                // TTS toggle button
                 FloatingActionButton(
                     onClick = {
-                        isPaused = !isPaused
-                        if (isPaused) {
-                            voiceCommandManager.stopListening(isPause = true)
-                        } else {
-                            voiceCommandManager.resume()
-                            autoRestartListening()
+                        viewModel.toggleTts()
+                        if (!isTtsEnabled) {
+                            ttsManager.stop()
                         }
                     },
-                    containerColor = if (isPaused)
-                        MaterialTheme.colorScheme.primary
+                    containerColor = if (isTtsEnabled)
+                        MaterialTheme.colorScheme.secondary
                     else
-                        MaterialTheme.colorScheme.tertiary
+                        MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Icon(
-                        imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                        contentDescription = stringResource(if (isPaused) R.string.resume_voice_control else R.string.pause_voice_control)
+                        imageVector = if (isTtsEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                        contentDescription = stringResource(R.string.toggle_tts),
+                        tint = if (isTtsEnabled)
+                            MaterialTheme.colorScheme.onSecondary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -239,6 +379,52 @@ fun CookingStepScreen(
                 recognizedText = recognizedText,
                 isPaused = isPaused
             )
+
+            // TTS speaking feedback
+            if (isTtsSpeaking) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VolumeUp,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.tts_speaking),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
+
+            // Timer status bar (shows countdown for current step)
+            currentStepTimer?.let { timer ->
+                TimerStatusBar(timer = timer)
+            }
+
+            // Active timers overview (shows all timers from other steps)
+            if (allActiveTimers.isNotEmpty()) {
+                ActiveTimersOverview(
+                    timers = allActiveTimers,
+                    currentStepIndex = currentStepIndex,
+                    onTimerClick = { stepIndex ->
+                        scope.launch {
+                            viewModel.goToStep(stepIndex)
+                        }
+                    }
+                )
+            }
 
             // Debug: Show all recognized text
             DebugRecognizedTextDisplay(
@@ -438,9 +624,9 @@ fun StepMediaItem(media: com.example.cookingassistant.model.StepMedia) {
                     contentDescription = media.caption,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(4f / 3f)
+                        .heightIn(max = 400.dp)
                         .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             }
             MediaType.VIDEO -> {

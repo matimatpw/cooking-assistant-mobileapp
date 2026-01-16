@@ -7,6 +7,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import com.example.cookingassistant.util.LocaleManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,10 +23,19 @@ class VoiceCommandManager(private val context: Context) {
     private val tag = "VoiceCommandManager"
 
     private var speechRecognizer: SpeechRecognizer? = null
-    private val recognizerIntent: Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+
+    /**
+     * Create recognizer intent with app's selected language
+     */
+    private fun createRecognizerIntent(): Intent {
+        val appLanguage = LocaleManager.getCurrentLanguage(context)
+        val locale = Locale.forLanguageTag(appLanguage)
+
+        return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        }
     }
 
     private val commandTranslator = VoiceCommandTranslator(context)
@@ -88,8 +98,9 @@ class VoiceCommandManager(private val context: Context) {
         _isListening.value = true
         _recognizedText.value = null
 
-        speechRecognizer?.startListening(recognizerIntent)
-        Log.d(tag, "Started listening for voice commands (auto-restart: $enableAutoRestart)")
+        val intent = createRecognizerIntent()
+        speechRecognizer?.startListening(intent)
+        Log.d(tag, "Started listening for voice commands (auto-restart: $enableAutoRestart, language: ${LocaleManager.getCurrentLanguage(context)})")
     }
 
     /**
@@ -265,8 +276,23 @@ class VoiceCommandManager(private val context: Context) {
  * Enum representing supported voice commands
  */
 enum class VoiceCommand {
-    NEXT,       // Go to next step
-    PREVIOUS,   // Go to previous step
-    REPEAT,     // Repeat current step
-    START       // Go to first step
+    // Navigation commands
+    NEXT,           // Go to next step
+    PREVIOUS,       // Go to previous step
+    REPEAT,         // Repeat current step
+    START,          // Go to first step
+
+    // Text-to-Speech commands
+    INGREDIENTS,    // Read step ingredients
+    DESCRIPTION,    // Read step instruction
+    TIME,           // Read step duration
+    TIPS,           // Read step tips
+    STEP_NUMBER,    // Read current step number
+
+    // Timer commands
+    START_TIMER,    // Start timer for current step
+    PAUSE_TIMER,    // Pause active timer
+    RESUME_TIMER,   // Resume paused timer
+    STOP_TIMER,     // Stop/cancel timer
+    CHECK_TIMER     // Check timer status (read remaining time)
 }

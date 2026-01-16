@@ -8,6 +8,12 @@
     <!-- Internet permission -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Timer and notification permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SHORT_SERVICE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Camera permission for taking photos/videos -->
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -42,6 +48,30 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Timer Service -->
+        <service
+            android:name=".timer.TimerService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
+
+        <!-- Alarm Dismiss Receiver -->
+        <receiver
+            android:name=".timer.AlarmDismissReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- FileProvider for camera photos -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

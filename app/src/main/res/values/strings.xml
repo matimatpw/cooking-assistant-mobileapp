@@ -6,6 +6,29 @@
     <string name="voice_command_previous">previous|back|go back</string>
     <string name="voice_command_repeat">repeat|again</string>
     <string name="voice_command_start">start|begin</string>
+    <string name="voice_command_ingredients">ingredients|what do I need|what are the ingredients</string>
+    <string name="voice_command_description">description|instruction|what do I do|repeat instruction</string>
+    <string name="voice_command_time">time|duration|how long|how much time</string>
+    <string name="voice_command_tips">tips|advice|hint|help</string>
+    <string name="voice_command_step">step|step number|what step|which step</string>
+
+    <!-- Timer Voice Commands -->
+    <string name="voice_command_start_timer">start timer|begin timer|set timer|timer start</string>
+    <string name="voice_command_pause_timer">pause timer|stop timer|timer pause</string>
+    <string name="voice_command_resume_timer">resume timer|continue timer|timer resume</string>
+    <string name="voice_command_stop_timer">cancel timer|end timer|timer cancel|timer stop</string>
+    <string name="voice_command_check_timer">check timer|timer status|how much time|time left|time remaining</string>
+
+    <!-- Timer TTS Messages -->
+    <string name="tts_timer_started">Timer started for %1$d minutes</string>
+    <string name="tts_timer_paused">Timer paused at %1$d minutes %2$d seconds</string>
+    <string name="tts_timer_resumed">Timer resumed</string>
+    <string name="tts_timer_cancelled">Timer cancelled</string>
+    <string name="tts_timer_finished">Timer finished! Step %1$d is complete</string>
+    <string name="tts_timer_status">%1$d minutes %2$d seconds remaining</string>
+    <string name="tts_no_timer_running">No timer running for this step</string>
+    <string name="tts_step_has_no_duration">This step has no duration. Cannot start timer.</string>
+    <string name="tts_timer_already_running">Timer already running for this step</string>
 
     <!-- UI Strings -->
     <string name="cooking_assistant">Cooking Assistant</string>
@@ -37,8 +60,22 @@
     <string name="start_listening">Start listening</string>
 
     <!-- Voice Command Hints -->
-    <string name="voice_commands_hint">Voice commands: \"Next\", \"Previous\", \"Repeat\", \"Start\"</string>
+    <string name="voice_commands_hint">Voice: \"Next\", \"Previous\", \"Ingredients\", \"Time\", \"Tips\"</string>
     <string name="swipe_hint">or swipe left/right to navigate</string>
+
+    <!-- Text-to-Speech Content -->
+    <string name="tts_ingredients_prefix">Ingredients for this step:</string>
+    <string name="tts_no_ingredients">No specific ingredients for this step</string>
+    <string name="tts_tips_prefix">Tip:</string>
+    <string name="tts_step_number">Step %1$d of %2$d</string>
+    <string name="tts_duration_singular">This step takes %1$d minute</string>
+    <string name="tts_duration_plural">This step takes %1$d minutes</string>
+
+    <!-- Text-to-Speech UI -->
+    <string name="tts_enabled">Text-to-speech enabled</string>
+    <string name="tts_disabled">Text-to-speech disabled</string>
+    <string name="toggle_tts">Toggle text-to-speech</string>
+    <string name="tts_speaking">Speaking…</string>
 
     <!-- Language Settings -->
     <string name="language">Language</string>
@@ -127,11 +164,25 @@
     <!-- Media Picker -->
     <string name="add_photo">Add Photo</string>
     <string name="remove_photo">Remove</string>
-    <string name="media_selection">Media Selection</string>
-    <string name="photo_video_selection_info">Photo/Video selection will be available after camera and gallery integration.</string>
-    <string name="photo_json_info">For now, you can add photos by editing the JSON recipe files directly.</string>
-    <string name="camera_gallery_coming_soon">Camera and gallery integration coming soon</string>
+    <string name="choose_photo_source">Choose how to add a photo:</string>
+    <string name="take_photo">Take Photo</string>
+    <string name="take_photo_description">Use your camera to capture a new photo</string>
+    <string name="choose_from_gallery">Choose from Gallery</string>
+    <string name="choose_from_gallery_description">Select an existing photo from your device</string>
+    <string name="permission_required">Permission Required</string>
+    <string name="permission_rationale_photo">Camera and storage permissions are needed to add photos to your recipes.</string>
+    <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
+    <string name="media_selection">Media Selection</string>
+    <string name="camera_gallery_coming_soon">Camera and gallery integration coming soon</string>
+
+    <!-- Step Media -->
+    <string name="step_media">Step Photos/Videos</string>
+    <string name="photo">Photo</string>
+    <string name="video">Video</string>
+    <string name="remove_media">Remove media</string>
+    <string name="add_step_photo">Add Photo to Step</string>
+    <string name="add_another_photo">Add Another Photo</string>
 
     <!-- Exit Confirmation Dialog -->
     <string name="unsaved_changes_title">Unsaved Changes</string>
@@ -167,4 +218,24 @@
     <string name="category_meal_prep">Meal Prep</string>
     <string name="category_party">Party</string>
     <string name="category_holiday">Holiday</string>
+
+    <!-- Filtering -->
+    <string name="filter_recipes">Filter Recipes</string>
+    <string name="filter_meal_type">Meal Type</string>
+    <string name="filter_dietary">Dietary Preferences</string>
+    <string name="filter_cuisine">Cuisine</string>
+    <string name="filter_difficulty">Difficulty</string>
+    <string name="filter_cooking_time">Cooking Time</string>
+    <string name="clear_filters">Clear All</string>
+    <string name="apply_filters">Apply</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+    <string name="min_label">Min: %1$s</string>
+    <string name="max_label">Max: %1$s</string>
+    <string name="minutes_format">%1$d min</string>
+    <string name="hours_format">%1$d h</string>
+    <string name="hours_minutes_format">%1$d h %2$d min</string>
+    <string name="time_filter_hint">Drag the sliders to filter by cooking time</string>
+    <string name="close">Close</string>
+    <string name="filters">Filters</string>
 </resources>
