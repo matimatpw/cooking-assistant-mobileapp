@@ -1,6 +1,7 @@
 package com.example.cookingassistant
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,7 +9,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
@@ -23,8 +28,15 @@ import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
+
+    // Track current intent for deep link navigation
+    private var currentIntent by mutableStateOf<Intent?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Set initial intent for deep link handling
+        currentIntent = intent
 
         // Install bundled recipes on app startup (runs only on first launch)
         lifecycleScope.launch {
@@ -46,18 +58,34 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                // Handle deep links from widget
+                LaunchedEffect(currentIntent) {
+                    currentIntent?.data?.let { uri ->
+                        // NavController will handle the deep link via the deepLinks defined in Navigation.kt
+                        navController.handleDeepLink(Intent(Intent.ACTION_VIEW, uri))
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Set up navigation graph with repository
+                    // Set up navigation graph with repository and context
                     CookingAssistantNavigation(
                         navController = navController,
-                        repository = repository
+                        repository = repository,
+                        context = applicationContext
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Update both the activity intent and our state to trigger navigation
+        setIntent(intent)
+        currentIntent = intent
     }
 
     override fun attachBaseContext(newBase: Context) {

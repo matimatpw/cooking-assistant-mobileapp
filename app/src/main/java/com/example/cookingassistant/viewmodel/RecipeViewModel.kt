@@ -16,6 +16,8 @@ import com.example.cookingassistant.model.TimerStatus
 import com.example.cookingassistant.timer.TimerAlarmCallback
 import com.example.cookingassistant.timer.TimerServiceBridge
 import com.example.cookingassistant.voice.VoiceCommand
+import com.example.cookingassistant.widget.WidgetPreferences
+import com.example.cookingassistant.widget.WidgetUpdater
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,7 +53,9 @@ interface TtsCallback {
  * Follows MVVM pattern - exposes state via StateFlow, no UI references
  */
 class RecipeViewModel(
-    private val repository: CachedRecipeRepository? = null
+    private val repository: CachedRecipeRepository? = null,
+    private val widgetPreferences: WidgetPreferences? = null,
+    private val context: android.content.Context? = null
 ) : ViewModel() {
 
     companion object {
@@ -535,6 +539,10 @@ class RecipeViewModel(
     fun startCookingMode(recipe: Recipe) {
         _activeRecipe.value = recipe
         _currentStepIndex.value = 0
+
+        // Track cooking session for widget
+        widgetPreferences?.setActiveCookingSession(recipe.id, 0)
+        triggerWidgetUpdate()
     }
 
     /**
@@ -548,6 +556,11 @@ class RecipeViewModel(
 
         return if (currentIndex < maxIndex) {
             _currentStepIndex.value = currentIndex + 1
+
+            // Track step change for widget
+            widgetPreferences?.setActiveCookingSession(recipe.id, currentIndex + 1)
+            triggerWidgetUpdate()
+
             true
         } else {
             false
@@ -559,10 +572,18 @@ class RecipeViewModel(
      * @return true if navigation successful, false if already at first step
      */
     fun previousStep(): Boolean {
+        val recipe = _activeRecipe.value
         val currentIndex = _currentStepIndex.value
 
         return if (currentIndex > 0) {
             _currentStepIndex.value = currentIndex - 1
+
+            // Track step change for widget
+            recipe?.let {
+                widgetPreferences?.setActiveCookingSession(it.id, currentIndex - 1)
+                triggerWidgetUpdate()
+            }
+
             true
         } else {
             false
@@ -579,6 +600,10 @@ class RecipeViewModel(
 
         if (stepIndex in 0..maxIndex) {
             _currentStepIndex.value = stepIndex
+
+            // Track step change for widget
+            widgetPreferences?.setActiveCookingSession(recipe.id, stepIndex)
+            triggerWidgetUpdate()
         }
     }
 
@@ -586,7 +611,14 @@ class RecipeViewModel(
      * Reset to first step
      */
     fun resetToFirstStep() {
+        val recipe = _activeRecipe.value
         _currentStepIndex.value = 0
+
+        // Track step change for widget
+        recipe?.let {
+            widgetPreferences?.setActiveCookingSession(it.id, 0)
+            triggerWidgetUpdate()
+        }
     }
 
     // ========== Timer Management Methods ==========
@@ -960,12 +992,26 @@ class RecipeViewModel(
         _activeRecipe.value = null
         _currentStepIndex.value = 0
 
+        // Clear cooking session from widget
+        widgetPreferences?.clearCookingSession()
+        triggerWidgetUpdate()
+
         // Clean up callbacks and bridges
         ttsCallback = null
         timerServiceBridge = null
         timerAlarmCallback = null
 
         Log.d(TAG, "Exited cooking mode, cleaned up all timers")
+    }
+
+    /**
+     * Trigger widget update after state changes
+     */
+    private fun triggerWidgetUpdate() {
+        context?.let { ctx ->
+            WidgetUpdater.updateWidgets(ctx)
+            Log.d(TAG, "Triggered widget update from ViewModel")
+        }
     }
 
     /**
