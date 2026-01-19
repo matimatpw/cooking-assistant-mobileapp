@@ -8,20 +8,54 @@ import com.example.cookingassistant.model.Ingredient
 import com.example.cookingassistant.model.Recipe
 import com.example.cookingassistant.model.RecipeCategory
 import com.example.cookingassistant.model.RecipeDraft
+import com.example.cookingassistant.model.RecipeFilters
 import com.example.cookingassistant.model.RecipeStep
 import com.example.cookingassistant.repository.CachedRecipeRepository
+import com.example.cookingassistant.model.TimerState
+import com.example.cookingassistant.model.TimerStatus
+import com.example.cookingassistant.timer.TimerAlarmCallback
+import com.example.cookingassistant.timer.TimerServiceBridge
 import com.example.cookingassistant.voice.VoiceCommand
+import com.example.cookingassistant.widget.WidgetPreferences
+import com.example.cookingassistant.widget.WidgetUpdater
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/**
+ * Callback interface for Text-to-Speech functionality
+ * Allows ViewModel to trigger TTS without direct dependency on Android TTS API
+ */
+interface TtsCallback {
+    fun speakInstruction(instruction: String)
+    fun speakIngredients(ingredients: List<Ingredient>)
+    fun speakDuration(minutes: Int)
+    fun speakTips(tips: String)
+    fun speakStepNumber(stepNumber: Int, totalSteps: Int)
+
+    // Timer-specific TTS methods
+    fun speakTimerStarted(minutes: Int)
+    fun speakTimerPaused(minutes: Int, seconds: Int)
+    fun speakTimerResumed()
+    fun speakTimerCancelled()
+    fun speakTimerFinished(stepNumber: Int)
+    fun speakTimerStatus(minutes: Int, seconds: Int)
+    fun speakMessage(message: String)
+}
 
 /**
  * ViewModel for managing recipe data and step navigation
  * Follows MVVM pattern - exposes state via StateFlow, no UI references
  */
 class RecipeViewModel(
-    private val repository: CachedRecipeRepository? = null
+    private val repository: CachedRecipeRepository? = null,
+    private val widgetPreferences: WidgetPreferences? = null,
+    private val context: android.content.Context? = null
 ) : ViewModel() {
 
     companion object {
@@ -51,6 +85,35 @@ class RecipeViewModel(
     // Recipe draft for add/edit screen
     private val _recipeDraft = MutableStateFlow<RecipeDraft?>(null)
     val recipeDraft: StateFlow<RecipeDraft?> = _recipeDraft.asStateFlow()
+
+    // Filter state for recipe filtering
+    private val _filters = MutableStateFlow(RecipeFilters())
+    val filters: StateFlow<RecipeFilters> = _filters.asStateFlow()
+
+    // Text-to-Speech state
+    private val _isTtsEnabled = MutableStateFlow(true) // Auto-enabled by default
+    val isTtsEnabled: StateFlow<Boolean> = _isTtsEnabled.asStateFlow()
+
+    // TTS callback (set by UI layer with TextToSpeechManager)
+    private var ttsCallback: TtsCallback? = null
+
+    // Timer state management
+    private val _timers = MutableStateFlow<Map<Int, TimerState>>(emptyMap())
+    val timers: StateFlow<Map<Int, TimerState>> = _timers.asStateFlow()
+
+    // Timer for current step (convenience accessor)
+    val currentStepTimer: StateFlow<TimerState?> = combine(
+        _currentStepIndex,
+        _timers
+    ) { stepIndex, timersMap ->
+        timersMap[stepIndex]
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // Timer service bridge (set by UI layer)
+    private var timerServiceBridge: TimerServiceBridge? = null
+
+    // Timer alarm callback (set by UI layer)
+    private var timerAlarmCallback: TimerAlarmCallback? = null
 
     init {
         // Load recipes from cache on startup
@@ -137,20 +200,77 @@ class RecipeViewModel(
     }
 
     /**
-     * Gets recipes filtered by the selected tab.
+     * Gets recipes filtered by the selected tab and active filters.
      * Tab 0 (Explore): Returns bundled recipes (isCustom = false)
      * Tab 1 (My Recipes): Returns custom recipes (isCustom = true)
      *
      * @param tabIndex Tab index to filter for
      * @param recipes Full list of recipes
-     * @return Filtered list based on tab selection
+     * @return Filtered list based on tab selection and active filters
      */
     fun getRecipesForTab(tabIndex: Int, recipes: List<Recipe>): List<Recipe> {
-        return when (tabIndex) {
+        // First filter by tab
+        val tabFiltered = when (tabIndex) {
             0 -> recipes.filter { !it.isCustom } // Explore: bundled recipes
             1 -> recipes.filter { it.isCustom }  // My Recipes: custom recipes
             else -> recipes // Fallback: show all
         }
+
+        // Then apply additional filters
+        return applyFilters(tabFiltered, _filters.value)
+    }
+
+    /**
+     * Apply filters to a list of recipes
+     *
+     * @param recipes List of recipes to filter
+     * @param filters Filter criteria to apply
+     * @return Filtered list of recipes
+     */
+    fun applyFilters(recipes: List<Recipe>, filters: RecipeFilters): List<Recipe> {
+        if (!filters.hasActiveFilters()) {
+            return recipes
+        }
+
+        return recipes.filter { recipe ->
+            // Filter by meal types
+            val matchesMealType = filters.mealTypes.isEmpty() ||
+                    filters.mealTypes.any { it in recipe.categories }
+
+            // Filter by dietary preferences
+            val matchesDietary = filters.dietaryPreferences.isEmpty() ||
+                    filters.dietaryPreferences.all { it in recipe.categories }
+
+            // Filter by cuisines
+            val matchesCuisine = filters.cuisines.isEmpty() ||
+                    filters.cuisines.any { it in recipe.categories }
+
+            // Filter by difficulty
+            val matchesDifficulty = filters.difficulties.isEmpty() ||
+                    recipe.difficulty in filters.difficulties
+
+            // Filter by cooking time
+            val matchesCookingTime = (filters.minCookingTime == null || recipe.cookingTime >= filters.minCookingTime) &&
+                    (filters.maxCookingTime == null || recipe.cookingTime <= filters.maxCookingTime)
+
+            matchesMealType && matchesDietary && matchesCuisine && matchesDifficulty && matchesCookingTime
+        }
+    }
+
+    /**
+     * Update active filters
+     *
+     * @param filters New filter criteria
+     */
+    fun updateFilters(filters: RecipeFilters) {
+        _filters.value = filters
+    }
+
+    /**
+     * Clear all active filters
+     */
+    fun clearFilters() {
+        _filters.value = RecipeFilters()
     }
 
     /**
@@ -174,9 +294,33 @@ class RecipeViewModel(
                     Ingredient("salt", "to taste")
                 ),
                 steps = listOf(
-                    RecipeStep(1, "Bring a large pot of salted water to boil and cook spaghetti according to package directions.", 10),
-                    RecipeStep(2, "While pasta cooks, cut pancetta into small cubes and fry in a large pan until crispy.", 5),
-                    RecipeStep(3, "In a bowl, whisk together eggs, grated cheese, and generous black pepper.", 2),
+                    RecipeStep(
+                        stepNumber = 1,
+                        instruction = "Bring a large pot of salted water to boil and cook spaghetti according to package directions.",
+                        durationMinutes = 10,
+                        ingredients = listOf(
+                            Ingredient("spaghetti", "400g"),
+                            Ingredient("salt", "to taste")
+                        )
+                    ),
+                    RecipeStep(
+                        stepNumber = 2,
+                        instruction = "While pasta cooks, cut pancetta into small cubes and fry in a large pan until crispy.",
+                        durationMinutes = 5,
+                        ingredients = listOf(
+                            Ingredient("pancetta or guanciale", "200g", "cut into small cubes")
+                        )
+                    ),
+                    RecipeStep(
+                        stepNumber = 3,
+                        instruction = "In a bowl, whisk together eggs, grated cheese, and generous black pepper.",
+                        durationMinutes = 2,
+                        ingredients = listOf(
+                            Ingredient("eggs", "4 large"),
+                            Ingredient("Pecorino Romano cheese", "100g", "grated"),
+                            Ingredient("black pepper", "to taste")
+                        )
+                    ),
                     RecipeStep(4, "Reserve 1 cup of pasta water, then drain the spaghetti.", 1),
                     RecipeStep(5, "Remove pan from heat, add drained pasta to the pancetta.", 1),
                     RecipeStep(6, "Quickly pour in the egg mixture, tossing constantly. Add pasta water to create a creamy sauce.", 2),
@@ -208,14 +352,59 @@ class RecipeViewModel(
                     Ingredient("cooked rice", "for serving")
                 ),
                 steps = listOf(
-                    RecipeStep(1, "Mix chicken with 1 tbsp soy sauce and cornstarch. Let marinate for 10 minutes.", 10),
-                    RecipeStep(2, "Heat 1 tbsp oil in a wok or large pan over high heat.", 2),
+                    RecipeStep(
+                        stepNumber = 1,
+                        instruction = "Mix chicken with 1 tbsp soy sauce and cornstarch. Let marinate for 10 minutes.",
+                        durationMinutes = 10,
+                        ingredients = listOf(
+                            Ingredient("chicken breast", "500g", "sliced"),
+                            Ingredient("soy sauce", "1 tbsp"),
+                            Ingredient("cornstarch", "1 tbsp")
+                        )
+                    ),
+                    RecipeStep(
+                        stepNumber = 2,
+                        instruction = "Heat 1 tbsp oil in a wok or large pan over high heat.",
+                        durationMinutes = 2,
+                        ingredients = listOf(
+                            Ingredient("vegetable oil", "1 tbsp")
+                        )
+                    ),
                     RecipeStep(3, "Add chicken and stir-fry until golden brown, about 5 minutes. Remove and set aside.", 5),
-                    RecipeStep(4, "Add remaining oil to the pan. Stir-fry garlic for 30 seconds.", 1),
-                    RecipeStep(5, "Add peppers and onion, stir-fry for 3-4 minutes until slightly softened.", 4),
-                    RecipeStep(6, "Return chicken to pan, add remaining soy sauce.", 1),
+                    RecipeStep(
+                        stepNumber = 4,
+                        instruction = "Add remaining oil to the pan. Stir-fry garlic for 30 seconds.",
+                        durationMinutes = 1,
+                        ingredients = listOf(
+                            Ingredient("vegetable oil", "1 tbsp"),
+                            Ingredient("garlic", "3 cloves", "minced")
+                        )
+                    ),
+                    RecipeStep(
+                        stepNumber = 5,
+                        instruction = "Add peppers and onion, stir-fry for 3-4 minutes until slightly softened.",
+                        durationMinutes = 4,
+                        ingredients = listOf(
+                            Ingredient("bell peppers", "2", "sliced"),
+                            Ingredient("onion", "1", "sliced")
+                        )
+                    ),
+                    RecipeStep(
+                        stepNumber = 6,
+                        instruction = "Return chicken to pan, add remaining soy sauce.",
+                        durationMinutes = 1,
+                        ingredients = listOf(
+                            Ingredient("soy sauce", "2 tbsp")
+                        )
+                    ),
                     RecipeStep(7, "Toss everything together for 1-2 minutes.", 2),
-                    RecipeStep(8, "Serve hot over cooked rice.")
+                    RecipeStep(
+                        stepNumber = 8,
+                        instruction = "Serve hot over cooked rice.",
+                        ingredients = listOf(
+                            Ingredient("cooked rice", "for serving")
+                        )
+                    )
                 ),
                 cookingTime = 25,
                 prepTime = 15,
@@ -350,6 +539,10 @@ class RecipeViewModel(
     fun startCookingMode(recipe: Recipe) {
         _activeRecipe.value = recipe
         _currentStepIndex.value = 0
+
+        // Track cooking session for widget
+        widgetPreferences?.setActiveCookingSession(recipe.id, 0)
+        triggerWidgetUpdate()
     }
 
     /**
@@ -363,6 +556,11 @@ class RecipeViewModel(
 
         return if (currentIndex < maxIndex) {
             _currentStepIndex.value = currentIndex + 1
+
+            // Track step change for widget
+            widgetPreferences?.setActiveCookingSession(recipe.id, currentIndex + 1)
+            triggerWidgetUpdate()
+
             true
         } else {
             false
@@ -374,10 +572,18 @@ class RecipeViewModel(
      * @return true if navigation successful, false if already at first step
      */
     fun previousStep(): Boolean {
+        val recipe = _activeRecipe.value
         val currentIndex = _currentStepIndex.value
 
         return if (currentIndex > 0) {
             _currentStepIndex.value = currentIndex - 1
+
+            // Track step change for widget
+            recipe?.let {
+                widgetPreferences?.setActiveCookingSession(it.id, currentIndex - 1)
+                triggerWidgetUpdate()
+            }
+
             true
         } else {
             false
@@ -394,6 +600,10 @@ class RecipeViewModel(
 
         if (stepIndex in 0..maxIndex) {
             _currentStepIndex.value = stepIndex
+
+            // Track step change for widget
+            widgetPreferences?.setActiveCookingSession(recipe.id, stepIndex)
+            triggerWidgetUpdate()
         }
     }
 
@@ -401,7 +611,232 @@ class RecipeViewModel(
      * Reset to first step
      */
     fun resetToFirstStep() {
+        val recipe = _activeRecipe.value
         _currentStepIndex.value = 0
+
+        // Track step change for widget
+        recipe?.let {
+            widgetPreferences?.setActiveCookingSession(it.id, 0)
+            triggerWidgetUpdate()
+        }
+    }
+
+    // ========== Timer Management Methods ==========
+
+    /**
+     * Start timer for current step
+     * Creates a new timer and notifies the service to begin countdown
+     */
+    fun startTimer() {
+        val recipe = _activeRecipe.value ?: run {
+            Log.w(TAG, "Cannot start timer: no active recipe")
+            return
+        }
+        val stepIndex = _currentStepIndex.value
+        val step = recipe.steps.getOrNull(stepIndex) ?: run {
+            Log.w(TAG, "Cannot start timer: invalid step index $stepIndex")
+            return
+        }
+        val durationMinutes = step.durationMinutes ?: run {
+            Log.w(TAG, "Cannot start timer: step has no duration")
+            return
+        }
+
+        val timerState = TimerState(
+            stepIndex = stepIndex,
+            recipeId = recipe.id,
+            durationSeconds = durationMinutes * 60,
+            remainingSeconds = durationMinutes * 60,
+            status = TimerStatus.RUNNING,
+            startTimestamp = System.currentTimeMillis()
+        )
+
+        _timers.value = _timers.value + (stepIndex to timerState)
+        timerServiceBridge?.startTimer(timerState)
+
+        Log.d(TAG, "Started timer for step $stepIndex: ${durationMinutes}min (ID: ${timerState.timerId})")
+    }
+
+    /**
+     * Pause timer for current step
+     */
+    fun pauseTimer() {
+        val stepIndex = _currentStepIndex.value
+        val timer = _timers.value[stepIndex] ?: run {
+            Log.w(TAG, "Cannot pause timer: no timer for step $stepIndex")
+            return
+        }
+
+        if (timer.status != TimerStatus.RUNNING) {
+            Log.w(TAG, "Cannot pause timer: timer is not running (status: ${timer.status})")
+            return
+        }
+
+        val updatedTimer = timer.copy(
+            status = TimerStatus.PAUSED,
+            pauseTimestamp = System.currentTimeMillis()
+        )
+
+        _timers.value = _timers.value + (stepIndex to updatedTimer)
+        timerServiceBridge?.pauseTimer(timer.timerId)
+
+        Log.d(TAG, "Paused timer for step $stepIndex")
+    }
+
+    /**
+     * Resume paused timer for current step
+     */
+    fun resumeTimer() {
+        val stepIndex = _currentStepIndex.value
+        val timer = _timers.value[stepIndex] ?: run {
+            Log.w(TAG, "Cannot resume timer: no timer for step $stepIndex")
+            return
+        }
+
+        if (timer.status != TimerStatus.PAUSED) {
+            Log.w(TAG, "Cannot resume timer: timer is not paused (status: ${timer.status})")
+            return
+        }
+
+        val updatedTimer = timer.copy(
+            status = TimerStatus.RUNNING,
+            startTimestamp = System.currentTimeMillis(), // Reset start time
+            pauseTimestamp = null
+        )
+
+        _timers.value = _timers.value + (stepIndex to updatedTimer)
+        timerServiceBridge?.resumeTimer(timer.timerId, updatedTimer)
+
+        Log.d(TAG, "Resumed timer for step $stepIndex")
+    }
+
+    /**
+     * Stop/cancel timer for current step
+     */
+    fun stopTimer() {
+        val stepIndex = _currentStepIndex.value
+        val timer = _timers.value[stepIndex] ?: run {
+            Log.w(TAG, "Cannot stop timer: no timer for step $stepIndex")
+            return
+        }
+
+        val updatedTimer = timer.copy(status = TimerStatus.CANCELLED)
+        _timers.value = _timers.value + (stepIndex to updatedTimer)
+
+        timerServiceBridge?.stopTimer(timer.timerId)
+
+        Log.d(TAG, "Stopped timer for step $stepIndex")
+
+        // Remove cancelled timer after short delay
+        viewModelScope.launch {
+            delay(2000)
+            _timers.value = _timers.value - stepIndex
+        }
+    }
+
+    /**
+     * Update timer state (called by service during countdown)
+     * @param timerId Unique timer identifier
+     * @param remainingSeconds Updated remaining time in seconds
+     */
+    fun updateTimerState(timerId: String, remainingSeconds: Int) {
+        val stepIndex = _timers.value.entries.find { it.value.timerId == timerId }?.key ?: run {
+            Log.w(TAG, "Cannot update timer: timer ID $timerId not found")
+            return
+        }
+        val timer = _timers.value[stepIndex] ?: return
+
+        val updatedTimer = timer.copy(remainingSeconds = remainingSeconds)
+        _timers.value = _timers.value + (stepIndex to updatedTimer)
+
+        // Check if finished
+        if (remainingSeconds <= 0 && timer.status == TimerStatus.RUNNING) {
+            onTimerFinished(timerId)
+        }
+    }
+
+    /**
+     * Handle timer completion
+     * Triggers alarm system (TTS, vibration, sound)
+     * @param timerId Unique timer identifier
+     */
+    private fun onTimerFinished(timerId: String) {
+        val stepIndex = _timers.value.entries.find { it.value.timerId == timerId }?.key ?: return
+        val timer = _timers.value[stepIndex] ?: return
+
+        val updatedTimer = timer.copy(status = TimerStatus.FINISHED)
+        _timers.value = _timers.value + (stepIndex to updatedTimer)
+
+        // Trigger alarm via callback
+        timerAlarmCallback?.onTimerFinished(timer)
+
+        Log.d(TAG, "Timer finished for step $stepIndex")
+    }
+
+    /**
+     * Get all active timers (RUNNING or PAUSED)
+     * @return List of (stepIndex, TimerState) pairs sorted by step index
+     */
+    fun getAllActiveTimers(): List<Pair<Int, TimerState>> {
+        return _timers.value
+            .filter { it.value.status == TimerStatus.RUNNING || it.value.status == TimerStatus.PAUSED }
+            .toList()
+            .sortedBy { it.first }
+    }
+
+    /**
+     * Set timer service bridge for communication with TimerService
+     * @param bridge The service bridge implementation
+     */
+    fun setTimerServiceBridge(bridge: TimerServiceBridge?) {
+        timerServiceBridge = bridge
+    }
+
+    /**
+     * Set timer alarm callback for alarm notifications
+     * @param callback The alarm callback implementation
+     */
+    fun setTimerAlarmCallback(callback: TimerAlarmCallback?) {
+        timerAlarmCallback = callback
+    }
+
+    // ========== End Timer Management Methods ==========
+
+    /**
+     * Set TTS callback for text-to-speech functionality
+     * @param callback The TTS callback to use
+     */
+    fun setTtsCallback(callback: TtsCallback?) {
+        ttsCallback = callback
+    }
+
+    /**
+     * Toggle TTS enabled state
+     */
+    fun toggleTts() {
+        _isTtsEnabled.value = !_isTtsEnabled.value
+    }
+
+    /**
+     * Set TTS enabled state
+     * @param enabled Whether TTS should be enabled
+     */
+    fun setTtsEnabled(enabled: Boolean) {
+        _isTtsEnabled.value = enabled
+    }
+
+    /**
+     * Auto-speak current step instruction (called on step navigation)
+     */
+    private fun autoSpeakCurrentStep() {
+        if (!_isTtsEnabled.value) return
+
+        val recipe = _activeRecipe.value ?: return
+        val stepIndex = _currentStepIndex.value
+        if (stepIndex >= recipe.steps.size) return
+
+        val step = recipe.steps[stepIndex]
+        ttsCallback?.speakInstruction(step.instruction)
     }
 
     /**
@@ -409,23 +844,174 @@ class RecipeViewModel(
      * @param command The voice command to process
      */
     fun processVoiceCommand(command: VoiceCommand) {
+        val recipe = _activeRecipe.value
+        val stepIndex = _currentStepIndex.value
+        val step = recipe?.steps?.getOrNull(stepIndex)
+
         when (command) {
-            VoiceCommand.NEXT -> nextStep()
-            VoiceCommand.PREVIOUS -> previousStep()
-            VoiceCommand.REPEAT -> {
-                // Repeat is handled by staying on current step
-                // Could potentially trigger TTS to read current step again
+            // Navigation commands (with auto-speak)
+            VoiceCommand.NEXT -> {
+                if (nextStep()) {
+                    autoSpeakCurrentStep()
+                }
             }
-            VoiceCommand.START -> resetToFirstStep()
+            VoiceCommand.PREVIOUS -> {
+                if (previousStep()) {
+                    autoSpeakCurrentStep()
+                }
+            }
+            VoiceCommand.START -> {
+                resetToFirstStep()
+                autoSpeakCurrentStep()
+            }
+            VoiceCommand.REPEAT -> {
+                // Repeat current step instruction
+                step?.let { ttsCallback?.speakInstruction(it.instruction) }
+            }
+
+            // Text-to-Speech commands
+            VoiceCommand.INGREDIENTS -> {
+                Log.d(TAG, "INGREDIENTS command - step: $step, callback: ${ttsCallback != null}")
+                step?.let {
+                    if (it.ingredients.isNotEmpty()) {
+                        Log.d(TAG, "Speaking ${it.ingredients.size} step ingredients")
+                        ttsCallback?.speakIngredients(it.ingredients)
+                    } else {
+                        // Fallback to recipe-level ingredients
+                        Log.d(TAG, "No step ingredients, using recipe-level (${recipe?.ingredients?.size} items)")
+                        recipe?.let { r -> ttsCallback?.speakIngredients(r.ingredients) }
+                    }
+                }
+            }
+            VoiceCommand.DESCRIPTION -> {
+                Log.d(TAG, "DESCRIPTION command - step: $step, callback: ${ttsCallback != null}")
+                step?.let { ttsCallback?.speakInstruction(it.instruction) }
+            }
+            VoiceCommand.TIME -> {
+                Log.d(TAG, "TIME command - duration: ${step?.durationMinutes}, callback: ${ttsCallback != null}")
+                step?.durationMinutes?.let { duration ->
+                    ttsCallback?.speakDuration(duration)
+                }
+            }
+            VoiceCommand.TIPS -> {
+                step?.tips?.let { tips ->
+                    ttsCallback?.speakTips(tips)
+                }
+            }
+            VoiceCommand.STEP_NUMBER -> {
+                recipe?.let {
+                    ttsCallback?.speakStepNumber(stepIndex + 1, it.steps.size)
+                }
+            }
+
+            // Timer commands
+            VoiceCommand.START_TIMER -> {
+                Log.d(TAG, "START_TIMER command - step: $stepIndex, duration: ${step?.durationMinutes}")
+                if (step?.durationMinutes != null) {
+                    val timer = _timers.value[stepIndex]
+                    if (timer == null || timer.status == TimerStatus.CANCELLED) {
+                        startTimer()
+                        ttsCallback?.speakTimerStarted(step.durationMinutes)
+                    } else {
+                        ttsCallback?.speakMessage("Timer already running")
+                        Log.d(TAG, "Timer already exists for step $stepIndex (status: ${timer.status})")
+                    }
+                } else {
+                    ttsCallback?.speakMessage("This step has no duration. Cannot start timer.")
+                    Log.d(TAG, "Cannot start timer: step has no duration")
+                }
+            }
+
+            VoiceCommand.PAUSE_TIMER -> {
+                Log.d(TAG, "PAUSE_TIMER command - step: $stepIndex")
+                val timer = _timers.value[stepIndex]
+                if (timer?.status == TimerStatus.RUNNING) {
+                    pauseTimer()
+                    val minutes = timer.remainingSeconds / 60
+                    val seconds = timer.remainingSeconds % 60
+                    ttsCallback?.speakTimerPaused(minutes, seconds)
+                } else {
+                    ttsCallback?.speakMessage("No timer running for this step")
+                    Log.d(TAG, "Cannot pause timer: no running timer for step $stepIndex")
+                }
+            }
+
+            VoiceCommand.RESUME_TIMER -> {
+                Log.d(TAG, "RESUME_TIMER command - step: $stepIndex")
+                val timer = _timers.value[stepIndex]
+                if (timer?.status == TimerStatus.PAUSED) {
+                    resumeTimer()
+                    ttsCallback?.speakTimerResumed()
+                } else {
+                    ttsCallback?.speakMessage("No paused timer for this step")
+                    Log.d(TAG, "Cannot resume timer: no paused timer for step $stepIndex")
+                }
+            }
+
+            VoiceCommand.STOP_TIMER -> {
+                Log.d(TAG, "STOP_TIMER command - step: $stepIndex")
+                val timer = _timers.value[stepIndex]
+                if (timer != null && (timer.status == TimerStatus.RUNNING || timer.status == TimerStatus.PAUSED)) {
+                    stopTimer()
+                    ttsCallback?.speakTimerCancelled()
+                } else {
+                    ttsCallback?.speakMessage("No active timer for this step")
+                    Log.d(TAG, "Cannot stop timer: no active timer for step $stepIndex")
+                }
+            }
+
+            VoiceCommand.CHECK_TIMER -> {
+                Log.d(TAG, "CHECK_TIMER command - step: $stepIndex")
+                val timer = _timers.value[stepIndex]
+                if (timer?.status == TimerStatus.RUNNING || timer?.status == TimerStatus.PAUSED) {
+                    val minutes = timer.remainingSeconds / 60
+                    val seconds = timer.remainingSeconds % 60
+                    ttsCallback?.speakTimerStatus(minutes, seconds)
+                } else {
+                    ttsCallback?.speakMessage("No timer running for this step")
+                    Log.d(TAG, "No timer to check for step $stepIndex")
+                }
+            }
         }
     }
 
     /**
      * Exit cooking mode
+     * Stops all active timers and cleans up state
      */
     fun exitCookingMode() {
+        // Stop all active timers
+        _timers.value.values.forEach { timer ->
+            if (timer.status == TimerStatus.RUNNING || timer.status == TimerStatus.PAUSED) {
+                timerServiceBridge?.stopTimer(timer.timerId)
+            }
+        }
+        _timers.value = emptyMap()
+
+        // Clean up cooking mode state
         _activeRecipe.value = null
         _currentStepIndex.value = 0
+
+        // Clear cooking session from widget
+        widgetPreferences?.clearCookingSession()
+        triggerWidgetUpdate()
+
+        // Clean up callbacks and bridges
+        ttsCallback = null
+        timerServiceBridge = null
+        timerAlarmCallback = null
+
+        Log.d(TAG, "Exited cooking mode, cleaned up all timers")
+    }
+
+    /**
+     * Trigger widget update after state changes
+     */
+    private fun triggerWidgetUpdate() {
+        context?.let { ctx ->
+            WidgetUpdater.updateWidgets(ctx)
+            Log.d(TAG, "Triggered widget update from ViewModel")
+        }
     }
 
     /**

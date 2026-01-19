@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -106,14 +107,34 @@ fun RecipeListScreen(
     // Collect UI state from ViewModel - automatically updates when state changes
     val state by viewModel.state.collectAsState()
     val selectedTabIndex by viewModel.selectedTabIndex.collectAsState()
+    val filters by viewModel.filters.collectAsState()
     val context = LocalContext.current
     var showLanguageMenu by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.cooking_assistant)) },
                 actions = {
+                    // Filter button with badge if filters are active
+                    IconButton(onClick = { showFilterSheet = true }) {
+                        if (filters.hasActiveFilters()) {
+                            androidx.compose.material3.Badge(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FilterList,
+                                    contentDescription = stringResource(R.string.filters)
+                                )
+                            }
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = stringResource(R.string.filters)
+                            )
+                        }
+                    }
                     IconButton(onClick = { showLanguageMenu = true }) {
                         Icon(
                             imageVector = Icons.Default.Language,
@@ -270,6 +291,18 @@ fun RecipeListScreen(
             }
             }
         }
+
+        // Show filter bottom sheet when requested
+        if (showFilterSheet) {
+            FilterBottomSheet(
+                currentFilters = filters,
+                onDismiss = { showFilterSheet = false },
+                onApplyFilters = { newFilters ->
+                    viewModel.updateFilters(newFilters)
+                    showFilterSheet = false
+                }
+            )
+        }
     }
 }
 
@@ -300,9 +333,9 @@ fun RecipeListItem(
                     model = recipe.mainPhotoUri,
                     contentDescription = recipe.name,
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(100.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
                 Spacer(modifier = Modifier.width(12.dp))
             }

@@ -62,6 +62,7 @@ data class Ingredient(
  * @param durationMinutes Optional duration for this specific step
  * @param mediaItems List of photos/videos for this step
  * @param tips Optional cooking tips for this step
+ * @param ingredients List of ingredients needed for this specific step (falls back to recipe-level if empty)
  */
 @Serializable
 data class RecipeStep(
@@ -69,7 +70,8 @@ data class RecipeStep(
     val instruction: String,
     val durationMinutes: Int? = null,
     val mediaItems: List<StepMedia> = emptyList(),
-    val tips: String? = null
+    val tips: String? = null,
+    val ingredients: List<Ingredient> = emptyList()
 )
 
 /**
@@ -174,3 +176,64 @@ data class RecipeDraft(
     val steps: List<RecipeStep> = listOf(RecipeStep(1, "", null, emptyList(), null)),
     val timestamp: Long = System.currentTimeMillis()
 )
+
+/**
+ * Represents filtering criteria for recipes
+ *
+ * @param mealTypes Filter by meal types (breakfast, lunch, dinner, etc.)
+ * @param dietaryPreferences Filter by dietary restrictions (vegetarian, vegan, etc.)
+ * @param cuisines Filter by cuisine types (Italian, Asian, etc.)
+ * @param difficulties Filter by difficulty levels (easy, medium, hard)
+ * @param maxCookingTime Maximum cooking time in minutes (null = no limit)
+ * @param minCookingTime Minimum cooking time in minutes (null = no limit)
+ */
+data class RecipeFilters(
+    val mealTypes: Set<RecipeCategory> = emptySet(),
+    val dietaryPreferences: Set<RecipeCategory> = emptySet(),
+    val cuisines: Set<RecipeCategory> = emptySet(),
+    val difficulties: Set<Difficulty> = emptySet(),
+    val maxCookingTime: Int? = null,
+    val minCookingTime: Int? = null
+) {
+    /**
+     * Check if any filters are active
+     */
+    fun hasActiveFilters(): Boolean {
+        return mealTypes.isNotEmpty() ||
+                dietaryPreferences.isNotEmpty() ||
+                cuisines.isNotEmpty() ||
+                difficulties.isNotEmpty() ||
+                maxCookingTime != null ||
+                minCookingTime != null
+    }
+
+    /**
+     * Get meal type categories
+     */
+    companion object {
+        val MEAL_TYPE_CATEGORIES = setOf(
+            RecipeCategory.BREAKFAST,
+            RecipeCategory.LUNCH,
+            RecipeCategory.DINNER,
+            RecipeCategory.DESSERT,
+            RecipeCategory.SNACK,
+            RecipeCategory.APPETIZER
+        )
+
+        val DIETARY_CATEGORIES = setOf(
+            RecipeCategory.VEGETARIAN,
+            RecipeCategory.VEGAN,
+            RecipeCategory.GLUTEN_FREE,
+            RecipeCategory.DAIRY_FREE
+        )
+
+        val CUISINE_CATEGORIES = setOf(
+            RecipeCategory.ITALIAN,
+            RecipeCategory.POLISH,
+            RecipeCategory.ASIAN,
+            RecipeCategory.MEXICAN,
+            RecipeCategory.GREEK,
+            RecipeCategory.AMERICAN
+        )
+    }
+}

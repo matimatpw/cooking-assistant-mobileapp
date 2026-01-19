@@ -6,6 +6,29 @@
     <string name="voice_command_previous">poprzedni|poprzedniego|poprzednia|poprzedniej|poprzednie|wstecz|cofnij|powrót|z powrotem</string>
     <string name="voice_command_repeat">powtórz|jeszcze raz|raz jeszcze</string>
     <string name="voice_command_start">start|początek|na początek|od początku</string>
+    <string name="voice_command_ingredients">składniki|co potrzebuję|co potrzebuje|jakie składniki|czego potrzebuję</string>
+    <string name="voice_command_description">opis|instrukcja|co robić|co robić dalej|powtórz instrukcję|co mam robić</string>
+    <string name="voice_command_time">czas|ile czasu|jak długo|czas trwania</string>
+    <string name="voice_command_tips">wskazówki|rada|pomoc|podpowiedź</string>
+    <string name="voice_command_step">krok|numer kroku|który krok|jaki krok</string>
+
+    <!-- Timer Voice Commands (Polish) -->
+    <string name="voice_command_start_timer">włącz timer|uruchom timer|ustaw timer|start timera|minutnik start</string>
+    <string name="voice_command_pause_timer">wstrzymaj timer|zatrzymaj timer|pauza timer|pauzuj timer</string>
+    <string name="voice_command_resume_timer">wznów timer|kontynuuj timer|dalej timer|timer dalej</string>
+    <string name="voice_command_stop_timer">anuluj timer|zakończ timer|koniec timera|stop timer</string>
+    <string name="voice_command_check_timer">sprawdź timer|ile czasu|pozostały czas|status timera|ile zostało</string>
+
+    <!-- Timer TTS Messages (Polish) -->
+    <string name="tts_timer_started">Timer uruchomiony na %1$d minut</string>
+    <string name="tts_timer_paused">Timer wstrzymany na %1$d minut %2$d sekund</string>
+    <string name="tts_timer_resumed">Timer wznowiony</string>
+    <string name="tts_timer_cancelled">Timer anulowany</string>
+    <string name="tts_timer_finished">Timer zakończony! Krok %1$d jest gotowy</string>
+    <string name="tts_timer_status">Pozostało %1$d minut %2$d sekund</string>
+    <string name="tts_no_timer_running">Brak aktywnego timera dla tego kroku</string>
+    <string name="tts_step_has_no_duration">Ten krok nie ma określonego czasu. Nie można uruchomić timera.</string>
+    <string name="tts_timer_already_running">Timer już działa dla tego kroku</string>
 
     <!-- UI Strings -->
     <string name="cooking_assistant">Asystent Kuchenny</string>
@@ -37,8 +60,22 @@
     <string name="start_listening">Zacznij słuchać</string>
 
     <!-- Voice Command Hints -->
-    <string name="voice_commands_hint">Komendy głosowe: \"Następny\", \"Poprzedni\", \"Powtórz\", \"Start\"</string>
+    <string name="voice_commands_hint">Głos: \"Następny\", \"Poprzedni\", \"Składniki\", \"Czas\", \"Wskazówki\"</string>
     <string name="swipe_hint">lub przesuń w lewo/prawo aby nawigować</string>
+
+    <!-- Text-to-Speech Content -->
+    <string name="tts_ingredients_prefix">Składniki dla tego kroku:</string>
+    <string name="tts_no_ingredients">Brak szczególnych składników dla tego kroku</string>
+    <string name="tts_tips_prefix">Wskazówka:</string>
+    <string name="tts_step_number">Krok %1$d z %2$d</string>
+    <string name="tts_duration_singular">Ten krok trwa %1$d minutę</string>
+    <string name="tts_duration_plural">Ten krok trwa %1$d minut</string>
+
+    <!-- Text-to-Speech UI -->
+    <string name="tts_enabled">Synteza mowy włączona</string>
+    <string name="tts_disabled">Synteza mowy wyłączona</string>
+    <string name="toggle_tts">Przełącz syntezę mowy</string>
+    <string name="tts_speaking">Mówię…</string>
 
     <!-- Language Settings -->
     <string name="language">Język</string>
@@ -127,11 +164,25 @@
     <!-- Media Picker -->
     <string name="add_photo">Dodaj Zdjęcie</string>
     <string name="remove_photo">Usuń</string>
-    <string name="media_selection">Wybór Multimediów</string>
-    <string name="photo_video_selection_info">Wybór zdjęć/wideo będzie dostępny po integracji kamery i galerii.</string>
-    <string name="photo_json_info">Na razie możesz dodać zdjęcia edytując pliki JSON przepisów bezpośrednio.</string>
-    <string name="camera_gallery_coming_soon">Integracja kamery i galerii wkrótce</string>
+    <string name="choose_photo_source">Wybierz sposób dodania zdjęcia:</string>
+    <string name="take_photo">Zrób Zdjęcie</string>
+    <string name="take_photo_description">Użyj aparatu, aby zrobić nowe zdjęcie</string>
+    <string name="choose_from_gallery">Wybierz z Galerii</string>
+    <string name="choose_from_gallery_description">Wybierz istniejące zdjęcie z urządzenia</string>
+    <string name="permission_required">Wymagane Uprawnienie</string>
+    <string name="permission_rationale_photo">Uprawnienia do aparatu i pamięci są potrzebne do dodawania zdjęć do przepisów.</string>
+    <string name="cancel">Anuluj</string>
     <string name="ok">OK</string>
+    <string name="media_selection">Wybór Multimediów</string>
+    <string name="camera_gallery_coming_soon">Integracja kamery i galerii wkrótce</string>
+
+    <!-- Step Media -->
+    <string name="step_media">Zdjęcia/Wideo Kroku</string>
+    <string name="photo">Zdjęcie</string>
+    <string name="video">Wideo</string>
+    <string name="remove_media">Usuń multimedia</string>
+    <string name="add_step_photo">Dodaj Zdjęcie do Kroku</string>
+    <string name="add_another_photo">Dodaj Kolejne Zdjęcie</string>
 
     <!-- Exit Confirmation Dialog -->
     <string name="unsaved_changes_title">Niezapisane Zmiany</string>
@@ -167,4 +218,24 @@
     <string name="category_meal_prep">Przygotowanie Posiłków</string>
     <string name="category_party">Impreza</string>
     <string name="category_holiday">Święta</string>
+
+    <!-- Filtering -->
+    <string name="filter_recipes">Filtruj Przepisy</string>
+    <string name="filter_meal_type">Typ Posiłku</string>
+    <string name="filter_dietary">Preferencje Dietetyczne</string>
+    <string name="filter_cuisine">Kuchnia</string>
+    <string name="filter_difficulty">Trudność</string>
+    <string name="filter_cooking_time">Czas Gotowania</string>
+    <string name="clear_filters">Wyczyść Wszystko</string>
+    <string name="apply_filters">Zastosuj</string>
+    <string name="enabled">Włączone</string>
+    <string name="disabled">Wyłączone</string>
+    <string name="min_label">Min: %1$s</string>
+    <string name="max_label">Max: %1$s</string>
+    <string name="minutes_format">%1$d min</string>
+    <string name="hours_format">%1$d godz</string>
+    <string name="hours_minutes_format">%1$d godz %2$d min</string>
+    <string name="time_filter_hint">Przeciągnij suwaki, aby filtrować według czasu gotowania</string>
+    <string name="close">Zamknij</string>
+    <string name="filters">Filtry</string>
 </resources>

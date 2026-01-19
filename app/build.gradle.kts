@@ -74,4 +74,11 @@ dependencies {
     // Coil for image and video loading
     implementation(libs.coil.compose)
     implementation(libs.coil.video)
+
+    // Jetpack Glance for widgets
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+    implementation("androidx.glance:glance-material3:1.1.1")
+
+    // Work Manager for widget updates
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }
