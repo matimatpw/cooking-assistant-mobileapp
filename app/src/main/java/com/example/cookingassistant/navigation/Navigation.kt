@@ -19,6 +19,9 @@ import com.example.cookingassistant.ui.theme.RecipeListScreen
 import com.example.cookingassistant.viewmodel.RecipeViewModel
 import com.example.cookingassistant.widget.WidgetPreferences
 import com.example.cookingassistant.widget.WidgetUpdater
+import com.example.cookingassistant.repository.SwipeRepository
+import com.example.cookingassistant.ui.theme.LikedRecipesScreen
+import com.example.cookingassistant.ui.theme.SwipeScreen
 
 /**
  * Sealed class defining all navigation routes in the app
@@ -36,6 +39,8 @@ sealed class Screen(val route: String) {
     object EditRecipe : Screen("edit_recipe/{recipeId}") {
         fun createRoute(recipeId: String) = "edit_recipe/$recipeId"
     }
+    object SwipeModule: Screen("swipe")
+    object LikedRecipes: Screen("liked_recipes")
 }
 
 /**
@@ -53,6 +58,8 @@ fun CookingAssistantNavigation(
 ) {
     // Widget preferences for tracking last viewed recipe and cooking session
     val widgetPreferences = WidgetPreferences(context)
+
+    val swipeRepository = SwipeRepository(context)
 
     // Single ViewModel instance shared across navigation with repository and widget preferences
     // This persists data as user navigates between screens
@@ -80,6 +87,35 @@ fun CookingAssistantNavigation(
                 onAddRecipe = {
                     // Navigate to add recipe screen
                     navController.navigate(Screen.AddRecipe.route)
+                },
+                onNavigateToSwipe = {
+                    navController.navigate(Screen.SwipeModule.route)
+                }
+            )
+        }
+
+        composable(route = Screen.SwipeModule.route) {
+            SwipeScreen(
+                recipeRepository = repository,
+                swipeRepository = swipeRepository,
+                onNavigateToLikedRecipes = {
+                    navController.navigate(Screen.LikedRecipes.route)
+                },
+                onNavigateToHome = {
+                    navController.navigate(Screen.RecipeList.route)
+                }
+            )
+        }
+
+        composable(route = Screen.LikedRecipes.route) {
+            LikedRecipesScreen(  // Use the new screen I created
+                viewModel = viewModel,
+                swipeRepository = swipeRepository,
+                onRecipeClick = { recipeId ->
+                    navController.navigate(Screen.RecipeDetail.createRoute(recipeId))
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

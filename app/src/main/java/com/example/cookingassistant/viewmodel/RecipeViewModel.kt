@@ -192,10 +192,10 @@ class RecipeViewModel(
 
     /**
      * Updates the selected tab index.
-     * @param index Tab index (0 = Explore, 1 = My Recipes)
+     * @param index Tab index (0 = Explore, 1 = My Recipes, 2 = Swipe Module)
      */
     fun selectTab(index: Int) {
-        require(index in 0..1) { "Invalid tab index: $index. Must be 0 or 1." }
+        require(index in 0..2) { "Invalid tab index: $index. Must be 0 or 1 or 2." }
         _selectedTabIndex.value = index
     }
 
@@ -213,6 +213,7 @@ class RecipeViewModel(
         val tabFiltered = when (tabIndex) {
             0 -> recipes.filter { !it.isCustom } // Explore: bundled recipes
             1 -> recipes.filter { it.isCustom }  // My Recipes: custom recipes
+            2 -> recipes.filter { !it.isCustom } // Swipe: bundled recipes
             else -> recipes // Fallback: show all
         }
 

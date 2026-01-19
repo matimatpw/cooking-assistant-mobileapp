@@ -42,6 +42,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,7 +67,7 @@ import com.example.cookingassistant.viewmodel.RecipeListState
 import com.example.cookingassistant.viewmodel.RecipeViewModel
 
 /**
- * Tab row for switching between Explore and My Recipes tabs
+ * Tab row for switching between Explore and My Recipes tabs and Swipe
  */
 @Composable
 fun RecipeListTabs(
@@ -90,6 +91,11 @@ fun RecipeListTabs(
             onClick = { onTabSelected(1) },
             text = { Text(stringResource(R.string.my_recipes_tab)) }
         )
+        Tab(
+            selected = selectedTabIndex == 2,
+            onClick = { onTabSelected(2) },
+            text = { Text(stringResource(R.string.swipe_tab)) }
+        )
     }
 }
 
@@ -102,7 +108,8 @@ fun RecipeListTabs(
 fun RecipeListScreen(
     viewModel: RecipeViewModel,
     onRecipeClick: (String) -> Unit,
-    onAddRecipe: () -> Unit = {}
+    onAddRecipe: () -> Unit = {},
+    onNavigateToSwipe: () -> Unit = {}
 ) {
     // Collect UI state from ViewModel - automatically updates when state changes
     val state by viewModel.state.collectAsState()
@@ -111,6 +118,14 @@ fun RecipeListScreen(
     val context = LocalContext.current
     var showLanguageMenu by remember { mutableStateOf(false) }
     var showFilterSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex == 2) {
+            onNavigateToSwipe()
+            // Reset tab to Explore after navigation starts
+            viewModel.selectTab(0)
+        }
+    }
 
     Scaffold(
         topBar = {

@@ -45,6 +45,7 @@
     <!-- Tab Labels -->
     <string name="explore_tab">Explore</string>
     <string name="my_recipes_tab">My Recipes</string>
+    <string name="swipe_tab" translatable="false">Swipe</string>
 
     <!-- Empty State Messages -->
     <string name="no_explore_recipes">No recipes available. Pull down to refresh.</string>
