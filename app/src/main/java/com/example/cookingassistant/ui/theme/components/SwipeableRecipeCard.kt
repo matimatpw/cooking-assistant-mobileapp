@@ -26,7 +26,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import androidx.compose.foundation.background
 
-
+//TODO add photos to Recipe dto
+//TODO superlikes prio in sorted likedRecipes
 /**
  * Swipeable recipe card component
  */
