@@ -242,4 +242,24 @@
 
     <!-- Widget -->
     <string name="widget_description">Quick access to your recipes and cooking sessions</string>
+
+    <!-- Exit Cooking Confirmation Dialog -->
+    <string name="exit_cooking_title">Exit Cooking Mode?</string>
+    <string name="exit_cooking_message">You have active timers running. Exiting will stop all timers.</string>
+    <string name="exit_cooking_active_timers">Active timers:</string>
+    <string name="exit_cooking_timer_item">Step %1$d: %2$d:%3$s remaining</string>
+    <string name="keep_cooking">Keep Cooking</string>
+    <string name="exit_stop_timers">Exit &amp; Stop Timers</string>
+
+    <!-- Resume Cooking Dialog -->
+    <string name="resume_cooking_title">Resume Cooking?</string>
+    <string name="resume_cooking_message">You have active timers from a previous cooking session.</string>
+    <string name="continue_cooking">Continue</string>
+    <!-- start_fresh already defined above in Draft Recovery Dialog -->
+
+    <!-- Different Recipe Warning Dialog -->
+    <string name="different_recipe_title">Active Timers Running</string>
+    <string name="different_recipe_message">You have active timers from another recipe. Starting this recipe will stop all existing timers.</string>
+    <string name="stop_and_start">Stop Timers &amp; Start</string>
+    <string name="go_back">Go Back</string>
 </resources>

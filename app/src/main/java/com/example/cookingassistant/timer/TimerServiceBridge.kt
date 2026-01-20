@@ -34,7 +34,51 @@ interface TimerServiceBridge {
      * @param timerId Unique identifier of the timer to stop
      */
     fun stopTimer(timerId: String)
+
+    /**
+     * Stop all timers and cleanup all notifications
+     * Called when user exits cooking mode
+     * @param stepIndices List of step indices that had timers (for cancelling alarm notifications)
+     */
+    fun stopAllTimersAndCleanup(stepIndices: List<Int>)
+
+    /**
+     * Check if there are active timers for a specific recipe
+     * @param recipeId The recipe ID to check
+     * @return true if there are running timers for this recipe
+     */
+    fun hasActiveTimersForRecipe(recipeId: String): Boolean
+
+    /**
+     * Check if there are any active timers running
+     * @return true if there are any running timers
+     */
+    fun hasAnyActiveTimers(): Boolean
+
+    /**
+     * Get the recipe ID of the currently running timers
+     * @return recipe ID if there are active timers, null otherwise
+     */
+    fun getActiveTimersRecipeId(): String?
+
+    /**
+     * Get all active timer states for a recipe
+     * @param recipeId The recipe ID to get timers for
+     * @return List of TimerRestoreData (timerId, stepIndex, durationSeconds, remainingSeconds)
+     */
+    fun getActiveTimersForRecipe(recipeId: String): List<TimerRestoreData>
 }
+
+/**
+ * Data class for restoring timer state
+ * Contains all information needed to restore a timer in the ViewModel
+ */
+data class TimerRestoreData(
+    val timerId: String,
+    val stepIndex: Int,
+    val durationSeconds: Int,
+    val remainingSeconds: Int
+)
 
 /**
  * Callback interface for timer alarm events

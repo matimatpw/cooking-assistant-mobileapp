@@ -72,6 +72,34 @@ class WidgetPreferences(context: Context) {
     }
 
     /**
+     * Set the recipe ID that has active timers running
+     * This is separate from cooking session - timers keep running even when user navigates away
+     */
+    fun setActiveTimerRecipe(recipeId: String) {
+        android.util.Log.d("WidgetPreferences", "Setting active timer recipe: $recipeId")
+        prefs.edit()
+            .putString(KEY_ACTIVE_TIMER_RECIPE_ID, recipeId)
+            .apply()
+    }
+
+    /**
+     * Get the recipe ID that has active timers running
+     */
+    fun getActiveTimerRecipe(): String? {
+        return prefs.getString(KEY_ACTIVE_TIMER_RECIPE_ID, null)
+    }
+
+    /**
+     * Clear the active timer recipe (when all timers stop)
+     */
+    fun clearActiveTimerRecipe() {
+        android.util.Log.d("WidgetPreferences", "Clearing active timer recipe")
+        prefs.edit()
+            .remove(KEY_ACTIVE_TIMER_RECIPE_ID)
+            .apply()
+    }
+
+    /**
      * Check if there's an active cooking session (not stale)
      */
     fun hasActiveCookingSession(): Boolean {
@@ -115,6 +143,7 @@ class WidgetPreferences(context: Context) {
         private const val KEY_ACTIVE_COOKING_TIMESTAMP = "active_cooking_timestamp"
         private const val KEY_CACHED_RANDOM_RECIPE_ID = "cached_random_recipe_id"
         private const val KEY_CACHED_RANDOM_TIMESTAMP = "cached_random_timestamp"
+        private const val KEY_ACTIVE_TIMER_RECIPE_ID = "active_timer_recipe_id"
 
         // Session is considered stale after 24 hours
         private const val SESSION_STALE_THRESHOLD = 24 * 60 * 60 * 1000L // 24 hours in milliseconds

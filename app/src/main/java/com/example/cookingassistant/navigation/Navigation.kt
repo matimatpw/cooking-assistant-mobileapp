@@ -32,8 +32,8 @@ sealed class Screen(val route: String) {
     object RecipeDetail : Screen("recipe_detail/{recipeId}") {
         fun createRoute(recipeId: String) = "recipe_detail/$recipeId"
     }
-    object CookingStep : Screen("cooking_step/{recipeId}") {
-        fun createRoute(recipeId: String) = "cooking_step/$recipeId"
+    object CookingStep : Screen("cooking_step/{recipeId}?stepIndex={stepIndex}") {
+        fun createRoute(recipeId: String, stepIndex: Int = 0) = "cooking_step/$recipeId?stepIndex=$stepIndex"
     }
     object AddRecipe : Screen("add_recipe")
     object EditRecipe : Screen("edit_recipe/{recipeId}") {
@@ -189,6 +189,43 @@ fun CookingAssistantNavigation(
             }
         }
 
+        // Continue cooking handler (for widget deep link)
+        // This route finds the recipe with active timers and navigates to cooking mode
+        composable(
+            route = "continue_cooking",
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "cookingassistant://continue_cooking"
+                }
+            )
+        ) {
+            // Check for active timer recipe first, then fall back to cooking session
+            val activeTimerRecipeId = widgetPreferences.getActiveTimerRecipe()
+            val cookingSession = widgetPreferences.getActiveCookingSession()
+
+            val targetRecipeId = activeTimerRecipeId ?: cookingSession?.recipeId
+            val targetStepIndex = if (activeTimerRecipeId != null) 0 else (cookingSession?.stepIndex ?: 0)
+
+            val recipes = viewModel.recipes.value
+            val targetRecipe = targetRecipeId?.let { id -> recipes.find { it.id == id } }
+
+            android.util.Log.d("Navigation", "Continue cooking: activeTimerRecipe=$activeTimerRecipeId, cookingSession=${cookingSession?.recipeId}, targetRecipe=${targetRecipe?.name}")
+
+            LaunchedEffect(Unit) {
+                if (targetRecipe != null) {
+                    navController.navigate(Screen.CookingStep.createRoute(targetRecipe.id, targetStepIndex)) {
+                        popUpTo("continue_cooking") { inclusive = true }
+                    }
+                } else {
+                    // No active cooking session, go to recipe list
+                    android.util.Log.w("Navigation", "No active cooking session found")
+                    navController.navigate(Screen.RecipeList.route) {
+                        popUpTo("continue_cooking") { inclusive = true }
+                    }
+                }
+            }
+        }
+
         // Recipe detail screen
         composable(
             route = Screen.RecipeDetail.route,
@@ -252,16 +289,24 @@ fun CookingAssistantNavigation(
             arguments = listOf(
                 navArgument("recipeId") {
                     type = NavType.StringType
+                },
+                navArgument("stepIndex") {
+                    type = NavType.IntType
+                    defaultValue = 0
                 }
             ),
             deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "cookingassistant://cooking_step/{recipeId}?stepIndex={stepIndex}"
+                },
                 navDeepLink {
                     uriPattern = "cookingassistant://cooking_step/{recipeId}"
                 }
             )
         ) { backStackEntry ->
-            // Extract recipe ID from navigation arguments
+            // Extract recipe ID and step index from navigation arguments
             val recipeId = backStackEntry.arguments?.getString("recipeId")
+            val initialStepIndex = backStackEntry.arguments?.getInt("stepIndex") ?: 0
 
             // Get recipe from ViewModel
             val recipe = recipeId?.let { viewModel.getRecipeById(it) }
@@ -271,6 +316,7 @@ fun CookingAssistantNavigation(
                 CookingStepScreen(
                     recipe = it,
                     viewModel = viewModel,
+                    initialStepIndex = initialStepIndex,
                     onNavigateBack = {
                         // Navigate back - if no back stack, go to list screen
                         if (!navController.popBackStack()) {

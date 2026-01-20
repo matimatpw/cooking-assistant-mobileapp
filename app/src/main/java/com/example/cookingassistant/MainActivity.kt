@@ -2,6 +2,7 @@ package com.example.cookingassistant
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -58,11 +59,24 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Handle deep links from widget
+                // Handle deep links from widget and timer notifications
                 LaunchedEffect(currentIntent) {
-                    currentIntent?.data?.let { uri ->
-                        // NavController will handle the deep link via the deepLinks defined in Navigation.kt
-                        navController.handleDeepLink(Intent(Intent.ACTION_VIEW, uri))
+                    currentIntent?.let { intent ->
+                        // Check if this is a navigation from timer notification
+                        if (intent.getBooleanExtra("navigate_to_cooking", false)) {
+                            val recipeId = intent.getStringExtra("recipe_id") ?: ""
+                            val stepIndex = intent.getIntExtra("step_index", 0)
+                            if (recipeId.isNotEmpty()) {
+                                // Create deep link URI for cooking step
+                                val deepLinkUri = Uri.parse("cookingassistant://cooking_step/$recipeId?stepIndex=$stepIndex")
+                                navController.handleDeepLink(Intent(Intent.ACTION_VIEW, deepLinkUri))
+                            }
+                        } else {
+                            // Handle regular deep links from widget
+                            intent.data?.let { uri ->
+                                navController.handleDeepLink(Intent(Intent.ACTION_VIEW, uri))
+                            }
+                        }
                     }
                 }
 

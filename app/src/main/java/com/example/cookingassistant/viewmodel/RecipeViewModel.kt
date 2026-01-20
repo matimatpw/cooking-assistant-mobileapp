@@ -537,13 +537,110 @@ class RecipeViewModel(
      * Start cooking mode for a recipe
      * @param recipe The recipe to start cooking
      */
-    fun startCookingMode(recipe: Recipe) {
+    fun startCookingMode(recipe: Recipe, initialStepIndex: Int = 0) {
         _activeRecipe.value = recipe
-        _currentStepIndex.value = 0
+        // Use initial step index, but ensure it's within valid range
+        val validStepIndex = initialStepIndex.coerceIn(0, recipe.steps.size - 1)
+        _currentStepIndex.value = validStepIndex
 
         // Track cooking session for widget
-        widgetPreferences?.setActiveCookingSession(recipe.id, 0)
+        widgetPreferences?.setActiveCookingSession(recipe.id, validStepIndex)
         triggerWidgetUpdate()
+    }
+
+    /**
+     * Start or resume cooking mode for a recipe
+     * If already cooking the same recipe, preserves timer state and navigates to step
+     * If not cooking or cooking a different recipe, starts fresh
+     * @param recipe The recipe to cook
+     * @param stepIndex The step to navigate to
+     */
+    fun startOrResumeCookingMode(recipe: Recipe, stepIndex: Int = 0) {
+        val validStepIndex = stepIndex.coerceIn(0, recipe.steps.size - 1)
+
+        if (_activeRecipe.value?.id == recipe.id) {
+            // Already cooking this recipe - just navigate to step, preserve timers
+            Log.d(TAG, "Resuming cooking mode for ${recipe.name}, navigating to step $validStepIndex")
+            _currentStepIndex.value = validStepIndex
+            widgetPreferences?.setActiveCookingSession(recipe.id, validStepIndex)
+            triggerWidgetUpdate()
+        } else {
+            // Not cooking or different recipe - start fresh
+            Log.d(TAG, "Starting new cooking mode for ${recipe.name} at step $validStepIndex")
+            startCookingMode(recipe, validStepIndex)
+        }
+    }
+
+    /**
+     * Check if there are active timers running in the background for a recipe
+     * @param recipeId The recipe ID to check
+     * @return true if there are active timers
+     */
+    fun hasActiveTimersForRecipe(recipeId: String): Boolean {
+        // First check ViewModel state
+        if (_timers.value.isNotEmpty()) {
+            return _timers.value.values.any {
+                it.recipeId == recipeId &&
+                (it.status == TimerStatus.RUNNING || it.status == TimerStatus.PAUSED)
+            }
+        }
+        // Fall back to checking the service
+        return timerServiceBridge?.hasActiveTimersForRecipe(recipeId) ?: false
+    }
+
+    /**
+     * Restore timer state from the background service
+     * Called when returning to cooking mode to sync UI with running timers
+     * @param recipeId The recipe ID to restore timers for
+     */
+    fun restoreTimerStateFromService(recipeId: String) {
+        val activeTimers = timerServiceBridge?.getActiveTimersForRecipe(recipeId) ?: return
+
+        if (activeTimers.isEmpty()) {
+            Log.d(TAG, "No active timers to restore for recipe $recipeId")
+            return
+        }
+
+        Log.d(TAG, "Restoring ${activeTimers.size} timer(s) from service for recipe $recipeId")
+
+        activeTimers.forEach { timerData ->
+            // IMPORTANT: Preserve the original timer ID so updates from service match
+            val timerState = TimerState(
+                stepIndex = timerData.stepIndex,
+                recipeId = recipeId,
+                durationSeconds = timerData.durationSeconds,
+                remainingSeconds = timerData.remainingSeconds,
+                status = TimerStatus.RUNNING,
+                startTimestamp = System.currentTimeMillis(),
+                timerId = timerData.timerId // Preserve original ID!
+            )
+            _timers.value = _timers.value + (timerData.stepIndex to timerState)
+            Log.d(TAG, "Restored timer for step ${timerData.stepIndex}: ${timerData.remainingSeconds}s remaining (ID: ${timerData.timerId})")
+        }
+    }
+
+    /**
+     * Start cooking fresh - clears any existing timers for the recipe
+     * @param recipe The recipe to cook
+     * @param stepIndex The step to start at
+     */
+    fun startCookingFresh(recipe: Recipe, stepIndex: Int = 0) {
+        Log.d(TAG, "Starting cooking fresh for ${recipe.name}")
+
+        // Stop any existing timers for this recipe
+        val existingTimerSteps = _timers.value
+            .filter { it.value.recipeId == recipe.id }
+            .keys.toList()
+
+        if (existingTimerSteps.isNotEmpty()) {
+            timerServiceBridge?.stopAllTimersAndCleanup(existingTimerSteps)
+        }
+
+        // Clear timer state
+        _timers.value = _timers.value.filterNot { it.value.recipeId == recipe.id }
+
+        // Start cooking mode
+        startCookingMode(recipe, stepIndex)
     }
 
     /**
@@ -654,6 +751,10 @@ class RecipeViewModel(
 
         _timers.value = _timers.value + (stepIndex to timerState)
         timerServiceBridge?.startTimer(timerState)
+
+        // Track which recipe has active timers for widget
+        widgetPreferences?.setActiveTimerRecipe(recipe.id)
+        triggerWidgetUpdate()
 
         Log.d(TAG, "Started timer for step $stepIndex: ${durationMinutes}min (ID: ${timerState.timerId})")
     }
@@ -981,11 +1082,12 @@ class RecipeViewModel(
      * Stops all active timers and cleans up state
      */
     fun exitCookingMode() {
-        // Stop all active timers
-        _timers.value.values.forEach { timer ->
-            if (timer.status == TimerStatus.RUNNING || timer.status == TimerStatus.PAUSED) {
-                timerServiceBridge?.stopTimer(timer.timerId)
-            }
+        // Collect step indices that had timers (for notification cleanup)
+        val stepIndices = _timers.value.keys.toList()
+
+        // Stop all timers and cleanup notifications in one operation
+        if (stepIndices.isNotEmpty()) {
+            timerServiceBridge?.stopAllTimersAndCleanup(stepIndices)
         }
         _timers.value = emptyMap()
 
@@ -993,8 +1095,9 @@ class RecipeViewModel(
         _activeRecipe.value = null
         _currentStepIndex.value = 0
 
-        // Clear cooking session from widget
+        // Clear cooking session and active timer recipe from widget
         widgetPreferences?.clearCookingSession()
+        widgetPreferences?.clearActiveTimerRecipe()
         triggerWidgetUpdate()
 
         // Clean up callbacks and bridges

@@ -62,20 +62,39 @@ class CookingAssistantWidget : GlanceAppWidget() {
         }
         Log.d("CookingWidget", "Last recipe: ${lastRecipe?.name} (id: ${lastRecipe?.id})")
 
-        // Load cooking session
-        val cookingSession = widgetPreferences.getActiveCookingSession()
-        val cookingRecipe = cookingSession?.let { session ->
-            allRecipes.find { it.id == session.recipeId }
+        // Load active timer recipe (takes priority over cooking session)
+        val activeTimerRecipeId = widgetPreferences.getActiveTimerRecipe()
+        val activeTimerRecipe = activeTimerRecipeId?.let { id ->
+            allRecipes.find { it.id == id }
         }
-        Log.d("CookingWidget", "Cooking session: ${cookingSession?.recipeId}")
+        Log.d("CookingWidget", "Active timer recipe: $activeTimerRecipeId (found: ${activeTimerRecipe?.name})")
+
+        // Load cooking session as fallback
+        val cookingSession = widgetPreferences.getActiveCookingSession()
+        val cookingRecipe = if (activeTimerRecipe != null) {
+            // Use active timer recipe for cooking session display
+            activeTimerRecipe
+        } else {
+            cookingSession?.let { session ->
+                allRecipes.find { it.id == session.recipeId }
+            }
+        }
+        Log.d("CookingWidget", "Cooking session: ${cookingSession?.recipeId}, using recipe: ${cookingRecipe?.name}")
 
         // Load or select random recipe
         val randomRecipe = selectRandomRecipe(widgetPreferences, allRecipes)
         Log.d("CookingWidget", "Random recipe: ${randomRecipe?.name}")
 
+        // Create cooking session for widget state - prioritize active timer recipe
+        val effectiveCookingSession = when {
+            activeTimerRecipe != null -> CookingSession(activeTimerRecipe.id, 0, System.currentTimeMillis())
+            cookingRecipe != null && cookingSession != null -> cookingSession
+            else -> null
+        }
+
         val state = WidgetState(
             lastRecipe = lastRecipe,
-            cookingSession = if (cookingRecipe != null) cookingSession else null,
+            cookingSession = effectiveCookingSession,
             randomRecipe = randomRecipe,
             hasRecipes = true
         )

@@ -57,25 +57,20 @@ class AlarmManager(private val context: Context) {
 
     /**
      * Trigger all alarm actions when timer finishes
-     * 1. TTS announcement
-     * 2. Vibrate device
-     * 3. Play alarm sound
-     * 4. Show notification
+     * 1. Vibrate device
+     * 2. Play alarm sound
+     * 3. Show notification
      */
     fun triggerTimerAlarm(timer: TimerState) {
         Log.d(TAG, "Triggering alarm for timer: ${timer.timerId} (step ${timer.stepIndex})")
 
-        // 1. TTS Announcement
-        val message = context.getString(R.string.tts_timer_finished, timer.stepIndex + 1)
-        ttsManager.speakTimerFinished(timer.stepIndex + 1)
-
-        // 2. Vibrate device
+        // 1. Vibrate device
         vibrateDevice()
 
-        // 3. Play alarm sound
+        // 2. Play alarm sound
         alarmPlayer.playAlarm()
 
-        // 4. Show notification
+        // 3. Show notification
         showAlarmNotification(timer)
     }
 
@@ -99,8 +94,11 @@ class AlarmManager(private val context: Context) {
      */
     private fun showAlarmNotification(timer: TimerState) {
         val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("navigate_to_step", timer.stepIndex)
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            // Pass data to navigate to cooking mode at the correct step
+            putExtra("navigate_to_cooking", true)
+            putExtra("recipe_id", timer.recipeId)
+            putExtra("step_index", timer.stepIndex)
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
@@ -164,6 +162,29 @@ class AlarmManager(private val context: Context) {
             }
             notificationManager.createNotificationChannel(channel)
         }
+    }
+
+    /**
+     * Cancel all alarm notifications
+     * Used when exiting cooking mode to ensure no orphaned notifications
+     * @param stepIndices List of step indices that had timers
+     */
+    fun cancelAllAlarmNotifications(stepIndices: List<Int>) {
+        stepIndices.forEach { stepIndex ->
+            notificationManager.cancel(ALARM_NOTIFICATION_ID_BASE + stepIndex)
+            Log.d(TAG, "Cancelled alarm notification for step $stepIndex")
+        }
+        // Also stop any playing alarm sound
+        alarmPlayer.stop()
+        Log.d(TAG, "Cancelled all alarm notifications and stopped alarm sound")
+    }
+
+    /**
+     * Stop alarm sound immediately
+     * Used when user exits cooking mode
+     */
+    fun stopAlarmSound() {
+        alarmPlayer.stop()
     }
 
     /**

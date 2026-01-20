@@ -100,4 +100,40 @@ class TimerServiceBridgeImpl(
         context.startService(intent)
         Log.d(TAG, "Stopped timer via service: $timerId")
     }
+
+    override fun stopAllTimersAndCleanup(stepIndices: List<Int>) {
+        val intent = Intent(context, TimerService::class.java).apply {
+            action = TimerService.ACTION_STOP_ALL_AND_CLEANUP
+            putExtra(TimerService.EXTRA_STEP_INDICES, stepIndices.toIntArray())
+        }
+        context.startService(intent)
+        Log.d(TAG, "Stopping all timers and cleaning up via service, step indices: $stepIndices")
+    }
+
+    override fun hasActiveTimersForRecipe(recipeId: String): Boolean {
+        return boundService?.hasActiveTimersForRecipe(recipeId) ?: false
+    }
+
+    override fun hasAnyActiveTimers(): Boolean {
+        return boundService?.hasAnyActiveTimers() ?: false
+    }
+
+    override fun getActiveTimersRecipeId(): String? {
+        return boundService?.getActiveTimersRecipeId()
+    }
+
+    override fun getActiveTimersForRecipe(recipeId: String): List<TimerRestoreData> {
+        val service = boundService ?: return emptyList()
+        val timerStates = service.getActiveTimerStates()
+        return timerStates.values
+            .filter { (timer, _) -> timer.recipeId == recipeId }
+            .map { (timer, remaining) ->
+                TimerRestoreData(
+                    timerId = timer.timerId,
+                    stepIndex = timer.stepIndex,
+                    durationSeconds = timer.durationSeconds,
+                    remainingSeconds = remaining
+                )
+            }
+    }
 }

@@ -66,10 +66,11 @@ object WidgetActionBuilder {
 
     /**
      * Create action to continue cooking session
+     * Uses special deep link that finds the recipe with active timers at click time
      */
     fun continueCookingAction(context: Context, recipeId: String, stepIndex: Int = 0): Action {
         return actionStartActivity(
-            createDeepLinkIntent(context, "cookingassistant://cooking_step/$recipeId")
+            createDeepLinkIntent(context, "cookingassistant://continue_cooking")
         )
     }
 
