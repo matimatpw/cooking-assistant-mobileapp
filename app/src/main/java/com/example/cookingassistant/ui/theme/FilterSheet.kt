@@ -43,13 +43,6 @@ import com.example.cookingassistant.model.RecipeFilters
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/**
- * Bottom sheet for filtering recipes
- *
- * @param currentFilters Current active filters
- * @param onDismiss Called when the sheet is dismissed
- * @param onApplyFilters Called when user applies new filters
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterBottomSheet(
@@ -60,13 +53,11 @@ fun FilterBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
-    // Local state for building filters
     var selectedMealTypes by remember { mutableStateOf(currentFilters.mealTypes) }
     var selectedDietary by remember { mutableStateOf(currentFilters.dietaryPreferences) }
     var selectedCuisines by remember { mutableStateOf(currentFilters.cuisines) }
     var selectedDifficulties by remember { mutableStateOf(currentFilters.difficulties) }
 
-    // Cooking time range state
     val defaultMinTime = 5f
     val defaultMaxTime = 480f
     var cookingTimeRange by remember {
@@ -86,7 +77,6 @@ fun FilterBottomSheet(
                 .padding(bottom = 32.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -107,7 +97,6 @@ fun FilterBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Meal Type Section
             FilterSection(
                 title = stringResource(R.string.filter_meal_type),
                 categories = RecipeFilters.MEAL_TYPE_CATEGORIES.toList(),
@@ -123,7 +112,6 @@ fun FilterBottomSheet(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-            // Dietary Preferences Section
             FilterSection(
                 title = stringResource(R.string.filter_dietary),
                 categories = RecipeFilters.DIETARY_CATEGORIES.toList(),
@@ -139,7 +127,6 @@ fun FilterBottomSheet(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-            // Cuisine Section
             FilterSection(
                 title = stringResource(R.string.filter_cuisine),
                 categories = RecipeFilters.CUISINE_CATEGORIES.toList(),
@@ -155,7 +142,6 @@ fun FilterBottomSheet(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-            // Difficulty Section
             DifficultyFilterSection(
                 selectedDifficulties = selectedDifficulties,
                 onDifficultyToggle = { difficulty ->
@@ -169,7 +155,6 @@ fun FilterBottomSheet(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-            // Cooking Time Section
             CookingTimeFilterSection(
                 cookingTimeRange = cookingTimeRange,
                 onCookingTimeRangeChange = { cookingTimeRange = it }
@@ -177,14 +162,12 @@ fun FilterBottomSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
                     onClick = {
-                        // Reset all filters
                         selectedMealTypes = emptySet()
                         selectedDietary = emptySet()
                         selectedCuisines = emptySet()
@@ -198,7 +181,6 @@ fun FilterBottomSheet(
 
                 Button(
                     onClick = {
-                        // Auto-detect if time filter should be applied
                         val isTimeFilterActive = cookingTimeRange.start > defaultMinTime || cookingTimeRange.endInclusive < defaultMaxTime
 
                         val newFilters = RecipeFilters(
@@ -225,9 +207,6 @@ fun FilterBottomSheet(
     }
 }
 
-/**
- * Section for filtering by categories (meal type, dietary, cuisine)
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FilterSection(
@@ -260,9 +239,6 @@ fun FilterSection(
     }
 }
 
-/**
- * Section for filtering by difficulty
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DifficultyFilterSection(
@@ -293,9 +269,6 @@ fun DifficultyFilterSection(
     }
 }
 
-/**
- * Section for filtering by cooking time range with a single range slider
- */
 @Composable
 fun CookingTimeFilterSection(
     cookingTimeRange: ClosedFloatingPointRange<Float>,
@@ -314,7 +287,6 @@ fun CookingTimeFilterSection(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Show current range
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -335,16 +307,14 @@ fun CookingTimeFilterSection(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Range slider with both thumbs on one bar
         RangeSlider(
             value = cookingTimeRange,
             onValueChange = onCookingTimeRangeChange,
             valueRange = 5f..480f,
-            steps = 30, // Steps every ~15 minutes
+            steps = 30,
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Hint text
         if (!isFilterActive) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -357,11 +327,6 @@ fun CookingTimeFilterSection(
     }
 }
 
-/**
- * Format cooking time in a human-readable way
- * For times under 60 minutes, shows minutes
- * For times 60+ minutes, shows hours and minutes
- */
 @Composable
 fun formatCookingTime(minutes: Int): String {
     return if (minutes < 60) {
@@ -377,9 +342,6 @@ fun formatCookingTime(minutes: Int): String {
     }
 }
 
-/**
- * Get display name for a recipe category
- */
 @Composable
 fun getCategoryDisplayName(category: RecipeCategory): String {
     val resourceId = when (category) {
@@ -407,9 +369,6 @@ fun getCategoryDisplayName(category: RecipeCategory): String {
     return stringResource(resourceId)
 }
 
-/**
- * Get display name for a difficulty level
- */
 @Composable
 fun getDifficultyDisplayName(difficulty: Difficulty): String {
     val resourceId = when (difficulty) {

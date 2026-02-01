@@ -8,16 +8,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/**
- * Helper object to trigger widget updates
- */
 object WidgetUpdater {
     private const val TAG = "WidgetUpdater"
 
-    /**
-     * Update all cooking assistant widgets
-     * Call this whenever widget state changes (last recipe, cooking session, etc.)
-     */
     fun updateWidgets(context: Context) {
         Log.d(TAG, "=== Triggering widget update ===")
         Log.d(TAG, "Context: ${context.javaClass.simpleName}")

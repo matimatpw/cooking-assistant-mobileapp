@@ -31,10 +31,6 @@ import androidx.compose.ui.unit.dp
 import com.example.cookingassistant.model.TimerState
 import com.example.cookingassistant.model.TimerStatus
 
-/**
- * Shows timer status for current step
- * Displays countdown in MM:SS format with status text
- */
 @Composable
 fun TimerStatusBar(timer: TimerState) {
     val minutes = timer.remainingSeconds / 60
@@ -101,10 +97,6 @@ fun TimerStatusBar(timer: TimerState) {
     }
 }
 
-/**
- * Floating action button for timer control
- * Changes appearance based on timer state
- */
 @Composable
 fun TimerControlButton(
     timer: TimerState?,
@@ -115,7 +107,6 @@ fun TimerControlButton(
 ) {
     when {
         timer == null || timer.status == TimerStatus.CANCELLED -> {
-            // Start button
             FloatingActionButton(
                 onClick = onStartTimer,
                 containerColor = MaterialTheme.colorScheme.primary
@@ -127,7 +118,6 @@ fun TimerControlButton(
             }
         }
         timer.status == TimerStatus.RUNNING -> {
-            // Pause button
             FloatingActionButton(
                 onClick = onPauseTimer,
                 containerColor = MaterialTheme.colorScheme.tertiary
@@ -139,7 +129,6 @@ fun TimerControlButton(
             }
         }
         timer.status == TimerStatus.PAUSED -> {
-            // Resume and stop buttons
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -165,7 +154,6 @@ fun TimerControlButton(
             }
         }
         timer.status == TimerStatus.FINISHED -> {
-            // Finished state - show checkmark
             FloatingActionButton(
                 onClick = onStopTimer,
                 containerColor = MaterialTheme.colorScheme.tertiary
@@ -179,10 +167,6 @@ fun TimerControlButton(
     }
 }
 
-/**
- * Shows all active timers across steps
- * Horizontal scrollable list of timer chips
- */
 @Composable
 fun ActiveTimersOverview(
     timers: List<Pair<Int, TimerState>>,
@@ -225,9 +209,6 @@ fun ActiveTimersOverview(
     }
 }
 
-/**
- * Individual timer chip showing step number and countdown
- */
 @Composable
 fun TimerChip(
     stepIndex: Int,

@@ -12,12 +12,6 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.*
 
-/**
- * Tests for CachedRecipeRepository focusing on coordination between
- * local and remote data sources, especially refresh behavior.
- *
- * Tests the repository package behavior for caching and refresh logic.
- */
 class CachedRecipeRepositoryTest {
 
     private lateinit var repository: CachedRecipeRepository
@@ -37,7 +31,6 @@ class CachedRecipeRepositoryTest {
         )
     }
 
-    // ========== Get All Recipes Tests ==========
 
     @Test
     fun get_all_recipes_returns_from_local_cache() = runTest(testDispatcher) {
@@ -56,12 +49,10 @@ class CachedRecipeRepositoryTest {
         assertThat(result.isSuccess).isTrue()
         assertThat(result.getOrNull()).hasSize(2)
 
-        // Verify only local source was called, not remote
         verify(mockLocalDataSource).getAllRecipes()
         verifyNoInteractions(mockRemoteDataSource)
     }
 
-    // ========== Refresh Recipes Tests ==========
 
     @Test
     fun refresh_recipes_fetches_from_remote_api() = runTest(testDispatcher) {
@@ -112,7 +103,6 @@ class CachedRecipeRepositoryTest {
             createTestRecipe(id = "custom-2", name = "My Custom Recipe 2", isCustom = true)
         )
 
-        // Fresh recipes from API (no custom recipes)
         val freshRecipes = listOf(
             createTestRecipe(id = "001", name = "Fresh Bundled Recipe", isCustom = false),
             createTestRecipe(id = "002", name = "New Bundled Recipe", isCustom = false)
@@ -215,7 +205,6 @@ class CachedRecipeRepositoryTest {
         assertThat(result.getOrNull()).hasSize(1)
     }
 
-    // ========== Save Recipe Tests ==========
 
     @Test
     fun save_recipe_saves_to_local_storage() = runTest(testDispatcher) {
@@ -235,7 +224,6 @@ class CachedRecipeRepositoryTest {
         verifyNoInteractions(mockRemoteDataSource)
     }
 
-    // ========== Update Recipe Tests ==========
 
     @Test
     fun update_recipe_updates_local_storage() = runTest(testDispatcher) {
@@ -252,7 +240,6 @@ class CachedRecipeRepositoryTest {
         verify(mockLocalDataSource).updateRecipe(recipe)
     }
 
-    // ========== Delete Recipe Tests ==========
 
     @Test
     fun delete_recipe_deletes_from_local_storage() = runTest(testDispatcher) {
@@ -269,7 +256,6 @@ class CachedRecipeRepositoryTest {
         verify(mockLocalDataSource).deleteRecipe(recipeId)
     }
 
-    // ========== Cache-First Strategy Tests ==========
 
     @Test
     fun repository_uses_cache_first_strategy_for_read_operations() = runTest(testDispatcher) {

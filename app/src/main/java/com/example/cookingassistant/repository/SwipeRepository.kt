@@ -10,9 +10,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 
-/**
- * Repository for managing swipe actions, history, and preferences
- */
 class SwipeRepository(private val context: Context) {
 
     private val json = Json {
@@ -29,9 +26,6 @@ class SwipeRepository(private val context: Context) {
     private val _swipePreferences = MutableStateFlow(loadSwipePreferences())
     val swipePreferences: Flow<SwipePreferences> = _swipePreferences.asStateFlow()
 
-    /**
-     * Load swipe history from file
-     */
     private fun loadSwipeHistory(): SwipeHistory {
         return try {
             if (swipeHistoryFile.exists()) {
@@ -46,9 +40,6 @@ class SwipeRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Save swipe history to file
-     */
     private fun saveSwipeHistory(history: SwipeHistory) {
         try {
             val jsonString = json.encodeToString(history)
@@ -58,9 +49,6 @@ class SwipeRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Load swipe preferences from file
-     */
     private fun loadSwipePreferences(): SwipePreferences {
         return try {
             if (swipePreferencesFile.exists()) {
@@ -75,9 +63,6 @@ class SwipeRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Save swipe preferences to file
-     */
     private fun saveSwipePreferences(preferences: SwipePreferences) {
         try {
             val jsonString = json.encodeToString(preferences)
@@ -87,9 +72,6 @@ class SwipeRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Record a swipe action
-     */
     fun recordSwipe(action: SwipeAction) {
         _swipeHistory.update { currentHistory ->
             val updatedHistory = currentHistory.addAction(action)
@@ -98,36 +80,21 @@ class SwipeRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Update swipe preferences
-     */
     fun updatePreferences(preferences: SwipePreferences) {
         _swipePreferences.value = preferences
         saveSwipePreferences(preferences)
     }
 
-    /**
-     * Get current swipe history
-     */
     fun getCurrentHistory(): SwipeHistory = _swipeHistory.value
 
-    /**
-     * Get current swipe preferences
-     */
     fun getCurrentPreferences(): SwipePreferences = _swipePreferences.value
 
-    /**
-     * Clear all swipe history
-     */
     fun clearHistory() {
         val emptyHistory = SwipeHistory()
         _swipeHistory.value = emptyHistory
         saveSwipeHistory(emptyHistory)
     }
 
-    /**
-     * Reset preferences to default
-     */
     fun resetPreferences() {
         val defaultPreferences = SwipePreferences()
         _swipePreferences.value = defaultPreferences

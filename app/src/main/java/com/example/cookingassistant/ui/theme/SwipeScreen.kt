@@ -16,9 +16,6 @@ import com.example.cookingassistant.repository.SwipeRepository
 import com.example.cookingassistant.ui.theme.components.SwipeableRecipeCard
 import com.example.cookingassistant.viewmodel.SwipeViewModel
 
-/**
- * Main screen for swiping through recipes
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeScreen(
@@ -39,7 +36,6 @@ fun SwipeScreen(
             TopAppBar(
                 title = { Text("Discover Recipes") },
                 actions = {
-                    // Liked recipes button
                     IconButton(onClick = onNavigateToLikedRecipes) {
                         Badge(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -54,7 +50,6 @@ fun SwipeScreen(
                         )
                     }
 
-                    // Home button
                     IconButton(onClick = onNavigateToHome) {
                         Icon(
                             imageVector = Icons.Default.Home,
@@ -91,13 +86,11 @@ fun SwipeScreen(
                             .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Recipe card stack
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
                         ) {
-                            // Show next cards in background (for depth effect)
                             deckState.nextRecipes.take(2).forEachIndexed { index, recipe ->
                                 Card(
                                     modifier = Modifier
@@ -110,12 +103,10 @@ fun SwipeScreen(
                                     )
                                 ) {
                                     Box(modifier = Modifier.fillMaxSize()) {
-                                        // Empty card for stacking effect
                                     }
                                 }
                             }
 
-                            // Current swipeable card
                             SwipeableRecipeCard(
                                 recipe = deckState.currentRecipe,
                                 onSwipe = { swipeType ->
@@ -127,7 +118,6 @@ fun SwipeScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Action buttons
                         SwipeActionButtons(
                             onDislike = { viewModel.swipe(SwipeType.DISLIKE) },
                             onSkip = { viewModel.swipe(SwipeType.SKIP) },
@@ -138,7 +128,6 @@ fun SwipeScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Stats
                         SwipeStats(swipeSession.history)
                     }
                 }
@@ -160,7 +149,6 @@ fun SwipeActionButtons(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Undo button
         IconButton(
             onClick = onUndo,
             modifier = Modifier.size(48.dp)
@@ -172,7 +160,6 @@ fun SwipeActionButtons(
             )
         }
 
-        // Dislike button
         FilledIconButton(
             onClick = onDislike,
             modifier = Modifier.size(56.dp),
@@ -188,7 +175,6 @@ fun SwipeActionButtons(
             )
         }
 
-        // Skip button
         FilledIconButton(
             onClick = onSkip,
             modifier = Modifier.size(48.dp),
@@ -203,7 +189,6 @@ fun SwipeActionButtons(
             )
         }
 
-        // Super like button
         FilledIconButton(
             onClick = onSuperLike,
             modifier = Modifier.size(48.dp),
@@ -218,7 +203,6 @@ fun SwipeActionButtons(
             )
         }
 
-        // Like button
         FilledIconButton(
             onClick = onLike,
             modifier = Modifier.size(56.dp),

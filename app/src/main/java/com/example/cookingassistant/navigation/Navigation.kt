@@ -23,10 +23,6 @@ import com.example.cookingassistant.repository.SwipeRepository
 import com.example.cookingassistant.ui.theme.LikedRecipesScreen
 import com.example.cookingassistant.ui.theme.SwipeScreen
 
-/**
- * Sealed class defining all navigation routes in the app
- * Helps prevent typos and provides type-safe navigation
- */
 sealed class Screen(val route: String) {
     object RecipeList : Screen("recipe_list")
     object RecipeDetail : Screen("recipe_detail/{recipeId}") {
@@ -43,26 +39,16 @@ sealed class Screen(val route: String) {
     object LikedRecipes: Screen("liked_recipes")
 }
 
-/**
- * Navigation graph for the app
- * Defines which composables are displayed for each route
- * @param navController Controls navigation between screens
- * @param repository Cached recipe repository for data access
- * @param context Application context for widget preferences
- */
 @Composable
 fun CookingAssistantNavigation(
     navController: NavHostController,
     repository: CachedRecipeRepository,
     context: Context
 ) {
-    // Widget preferences for tracking last viewed recipe and cooking session
     val widgetPreferences = WidgetPreferences(context)
 
     val swipeRepository = SwipeRepository(context)
 
-    // Single ViewModel instance shared across navigation with repository and widget preferences
-    // This persists data as user navigates between screens
     val viewModel: RecipeViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -76,16 +62,13 @@ fun CookingAssistantNavigation(
         navController = navController,
         startDestination = Screen.RecipeList.route
     ) {
-        // Recipe list screen (home screen)
         composable(route = Screen.RecipeList.route) {
             RecipeListScreen(
                 viewModel = viewModel,
                 onRecipeClick = { recipeId ->
-                    // Navigate to detail screen with recipe ID
                     navController.navigate(Screen.RecipeDetail.createRoute(recipeId))
                 },
                 onAddRecipe = {
-                    // Navigate to add recipe screen
                     navController.navigate(Screen.AddRecipe.route)
                 },
                 onNavigateToSwipe = {
@@ -108,7 +91,7 @@ fun CookingAssistantNavigation(
         }
 
         composable(route = Screen.LikedRecipes.route) {
-            LikedRecipesScreen(  // Use the new screen I created
+            LikedRecipesScreen(
                 viewModel = viewModel,
                 swipeRepository = swipeRepository,
                 onRecipeClick = { recipeId ->
@@ -120,8 +103,6 @@ fun CookingAssistantNavigation(
             )
         }
 
-        // Last recipe handler (for widget deep link)
-        // This route reads the last viewed recipe from preferences and navigates to it
         composable(
             route = "last_recipe",
             deepLinks = listOf(
@@ -130,23 +111,18 @@ fun CookingAssistantNavigation(
                 }
             )
         ) {
-            // Read last viewed recipe from preferences
             val lastRecipeId = widgetPreferences.getLastViewedRecipe()
             val recipes = viewModel.recipes.value
             val lastRecipe = lastRecipeId?.let { id -> recipes.find { it.id == id } }
 
-            // Log for debugging
             android.util.Log.d("Navigation", "Last recipe handler: lastRecipeId=$lastRecipeId, found=${lastRecipe?.name}")
 
-            // Navigate to the last recipe detail
             LaunchedEffect(Unit) {
                 if (lastRecipe != null) {
                     navController.navigate(Screen.RecipeDetail.createRoute(lastRecipe.id)) {
-                        // Pop the last_recipe route from back stack so back button works correctly
                         popUpTo("last_recipe") { inclusive = true }
                     }
                 } else {
-                    // No last recipe available, go to recipe list
                     android.util.Log.w("Navigation", "No last viewed recipe found")
                     navController.navigate(Screen.RecipeList.route) {
                         popUpTo("last_recipe") { inclusive = true }
@@ -155,8 +131,6 @@ fun CookingAssistantNavigation(
             }
         }
 
-        // Random recipe handler (for widget deep link)
-        // This route picks a random recipe and navigates to it
         composable(
             route = "random_recipe",
             deepLinks = listOf(
@@ -165,22 +139,17 @@ fun CookingAssistantNavigation(
                 }
             )
         ) {
-            // Pick a random recipe from current recipes
             val recipes = viewModel.recipes.value
             val randomRecipe = recipes.randomOrNull()
 
-            // Log for debugging
             android.util.Log.d("Navigation", "Random recipe handler: picked ${randomRecipe?.name} from ${recipes.size} recipes")
 
-            // Navigate to the random recipe detail
             LaunchedEffect(Unit) {
                 if (randomRecipe != null) {
                     navController.navigate(Screen.RecipeDetail.createRoute(randomRecipe.id)) {
-                        // Pop the random_recipe route from back stack so back button works correctly
                         popUpTo("random_recipe") { inclusive = true }
                     }
                 } else {
-                    // No recipes available, go to recipe list
                     android.util.Log.w("Navigation", "No recipes available for random selection")
                     navController.navigate(Screen.RecipeList.route) {
                         popUpTo("random_recipe") { inclusive = true }
@@ -189,8 +158,6 @@ fun CookingAssistantNavigation(
             }
         }
 
-        // Continue cooking handler (for widget deep link)
-        // This route finds the recipe with active timers and navigates to cooking mode
         composable(
             route = "continue_cooking",
             deepLinks = listOf(
@@ -199,7 +166,6 @@ fun CookingAssistantNavigation(
                 }
             )
         ) {
-            // Check for active timer recipe first, then fall back to cooking session
             val activeTimerRecipeId = widgetPreferences.getActiveTimerRecipe()
             val cookingSession = widgetPreferences.getActiveCookingSession()
 
@@ -217,7 +183,6 @@ fun CookingAssistantNavigation(
                         popUpTo("continue_cooking") { inclusive = true }
                     }
                 } else {
-                    // No active cooking session, go to recipe list
                     android.util.Log.w("Navigation", "No active cooking session found")
                     navController.navigate(Screen.RecipeList.route) {
                         popUpTo("continue_cooking") { inclusive = true }
@@ -226,7 +191,6 @@ fun CookingAssistantNavigation(
             }
         }
 
-        // Recipe detail screen
         composable(
             route = Screen.RecipeDetail.route,
             arguments = listOf(
@@ -240,31 +204,25 @@ fun CookingAssistantNavigation(
                 }
             )
         ) { backStackEntry ->
-            // Extract recipe ID from navigation arguments
             val recipeId = backStackEntry.arguments?.getString("recipeId")
 
-            // Track last viewed recipe for widget
             LaunchedEffect(recipeId) {
                 android.util.Log.d("Navigation", "LaunchedEffect triggered for recipeId: $recipeId")
                 recipeId?.let {
                     android.util.Log.d("Navigation", "About to save last viewed recipe: $it")
                     widgetPreferences.setLastViewedRecipe(it)
                     android.util.Log.d("Navigation", "About to trigger widget update")
-                    // Trigger widget refresh to show updated last recipe
                     WidgetUpdater.updateWidgets(context)
                     android.util.Log.d("Navigation", "Widget update triggered")
                 }
             }
 
-            // Get recipe from ViewModel
             val recipe = recipeId?.let { viewModel.getRecipeById(it) }
 
-            // Display detail screen if recipe found
             recipe?.let {
                 RecipeDetailScreen(
                     recipe = it,
                     onNavigateBack = {
-                        // Navigate back - if no back stack, go to list screen
                         if (!navController.popBackStack()) {
                             navController.navigate(Screen.RecipeList.route) {
                                 popUpTo(Screen.RecipeList.route) { inclusive = true }
@@ -272,18 +230,15 @@ fun CookingAssistantNavigation(
                         }
                     },
                     onStartCooking = { recipeId ->
-                        // Navigate to cooking step screen
                         navController.navigate(Screen.CookingStep.createRoute(recipeId))
                     },
                     onEdit = { recipeId ->
-                        // Navigate to edit recipe screen
                         navController.navigate(Screen.EditRecipe.createRoute(recipeId))
                     }
                 )
             }
         }
 
-        // Cooking step screen
         composable(
             route = Screen.CookingStep.route,
             arguments = listOf(
@@ -304,21 +259,17 @@ fun CookingAssistantNavigation(
                 }
             )
         ) { backStackEntry ->
-            // Extract recipe ID and step index from navigation arguments
             val recipeId = backStackEntry.arguments?.getString("recipeId")
             val initialStepIndex = backStackEntry.arguments?.getInt("stepIndex") ?: 0
 
-            // Get recipe from ViewModel
             val recipe = recipeId?.let { viewModel.getRecipeById(it) }
 
-            // Display cooking step screen if recipe found
             recipe?.let {
                 CookingStepScreen(
                     recipe = it,
                     viewModel = viewModel,
                     initialStepIndex = initialStepIndex,
                     onNavigateBack = {
-                        // Navigate back - if no back stack, go to list screen
                         if (!navController.popBackStack()) {
                             navController.navigate(Screen.RecipeList.route) {
                                 popUpTo(Screen.RecipeList.route) { inclusive = true }
@@ -329,23 +280,19 @@ fun CookingAssistantNavigation(
             }
         }
 
-        // Add recipe screen
         composable(route = Screen.AddRecipe.route) {
             AddEditRecipeScreen(
                 recipeId = null,
                 viewModel = viewModel,
                 onSave = {
-                    // Navigate back to list screen after saving
                     navController.popBackStack()
                 },
                 onCancel = {
-                    // Navigate back without saving
                     navController.popBackStack()
                 }
             )
         }
 
-        // Edit recipe screen
         composable(
             route = Screen.EditRecipe.route,
             arguments = listOf(
@@ -354,18 +301,15 @@ fun CookingAssistantNavigation(
                 }
             )
         ) { backStackEntry ->
-            // Extract recipe ID from navigation arguments
             val recipeId = backStackEntry.arguments?.getString("recipeId")
 
             AddEditRecipeScreen(
                 recipeId = recipeId,
                 viewModel = viewModel,
                 onSave = {
-                    // Navigate back to list screen after saving
                     navController.popBackStack()
                 },
                 onCancel = {
-                    // Navigate back without saving
                     navController.popBackStack()
                 }
             )

@@ -75,10 +75,6 @@ import com.example.cookingassistant.voice.VoiceCommandManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * Cooking step screen with swipe navigation and voice control
- * Displays one cooking step at a time with voice command support
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CookingStepScreen(
@@ -90,52 +86,40 @@ fun CookingStepScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Voice command manager
     val voiceCommandManager = remember { VoiceCommandManager(context) }
 
-    // Text-to-Speech manager
     val ttsManager = remember { TextToSpeechManager(context) }
     val isTtsEnabled by viewModel.isTtsEnabled.collectAsState()
     val isTtsSpeaking by ttsManager.isSpeaking.collectAsState()
 
-    // State
     val currentStepIndex by viewModel.currentStepIndex.collectAsState()
     val isListening by voiceCommandManager.isListening.collectAsState()
     val recognizedText by voiceCommandManager.recognizedText.collectAsState()
     val allRecognizedText by voiceCommandManager.allRecognizedText.collectAsState()
     var isPaused by remember { mutableStateOf(false) }
 
-    // Exit confirmation dialog state
     var showExitConfirmationDialog by remember { mutableStateOf(false) }
 
-    // Resume or Start Fresh dialog state
     var showResumeDialog by remember { mutableStateOf(false) }
     var showDifferentRecipeDialog by remember { mutableStateOf(false) }
     var hasCheckedForExistingTimers by remember { mutableStateOf(false) }
     var cookingInitialized by remember { mutableStateOf(false) }
 
-    // Target step index - determined after checking timers
-    // This is set BEFORE cookingInitialized so pager can be created with correct initial page
     var targetStepIndex by remember { mutableStateOf<Int?>(null) }
 
-    // Timer state
     val currentStepTimer by viewModel.currentStepTimer.collectAsState()
     val allTimers by viewModel.timers.collectAsState()
 
-    // Derive active timers from the reactive timers state
     val allActiveTimers = allTimers
         .filter { it.value.status == com.example.cookingassistant.model.TimerStatus.RUNNING ||
                   it.value.status == com.example.cookingassistant.model.TimerStatus.PAUSED }
         .toList()
         .sortedBy { it.first }
 
-    // Timer service bridge
     val timerServiceBridge = remember { TimerServiceBridgeImpl(context) }
 
-    // Flag to prevent circular updates between pager and ViewModel
     var isUpdatingFromViewModel by remember { mutableStateOf(false) }
 
-    // Permission launchers
     var hasRecordPermission by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -146,18 +130,14 @@ fun CookingStepScreen(
         }
     }
 
-    // Notification permission launcher (required for Android 13+)
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        // Notification permission granted or denied - timers will still work
-        // but notifications may not show if denied
     }
 
-    // Auto-restart function with delay
     fun autoRestartListening() {
         scope.launch {
-            delay(1500) // Wait 1.5 seconds before restarting
+            delay(1500)
             if (!isPaused && hasRecordPermission) {
                 voiceCommandManager.startListening(
                     onCommand = { command ->
@@ -172,42 +152,32 @@ fun CookingStepScreen(
         }
     }
 
-    // Initialize components on first composition
     LaunchedEffect(Unit) {
-        // Request permissions
         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
 
-        // Request notification permission for Android 13+ (required for timer notifications)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        // Initialize timer service bridge first (needed for checking/preserving timer state)
         timerServiceBridge.bindService(viewModel)
         viewModel.setTimerServiceBridge(timerServiceBridge)
 
-        // Small delay to ensure service is bound
         delay(100)
 
-        // Check for existing timers
         val hasTimersForThisRecipe = timerServiceBridge.hasActiveTimersForRecipe(recipe.id)
         val hasAnyTimers = timerServiceBridge.hasAnyActiveTimers()
         val otherRecipeId = timerServiceBridge.getActiveTimersRecipeId()
         hasCheckedForExistingTimers = true
 
         when {
-            // Case 1: Timers exist for a DIFFERENT recipe
             hasAnyTimers && otherRecipeId != null && otherRecipeId != recipe.id -> {
                 showDifferentRecipeDialog = true
             }
-            // Case 2: Timers exist for THIS recipe but we're not tracking it
             hasTimersForThisRecipe && viewModel.activeRecipe.value?.id != recipe.id -> {
                 showResumeDialog = true
             }
-            // Case 3: Already cooking this recipe, just restore state
             viewModel.activeRecipe.value?.id == recipe.id -> {
                 viewModel.restoreTimerStateFromService(recipe.id)
-                // Navigate to step with lowest timer, or use initialStepIndex if no timers
                 val activeTimersList = timerServiceBridge.getActiveTimersForRecipe(recipe.id)
                 val computedTargetStep = if (activeTimersList.isNotEmpty()) {
                     activeTimersList.minByOrNull { it.remainingSeconds }?.stepIndex ?: initialStepIndex
@@ -215,11 +185,9 @@ fun CookingStepScreen(
                     initialStepIndex
                 }
                 targetStepIndex = computedTargetStep
-                // Pager will be created with correct initial page via targetStepIndex
                 viewModel.startOrResumeCookingMode(recipe, computedTargetStep)
                 cookingInitialized = true
             }
-            // Case 4: No existing timers, start fresh
             else -> {
                 targetStepIndex = initialStepIndex
                 viewModel.startCookingMode(recipe, initialStepIndex)
@@ -227,7 +195,6 @@ fun CookingStepScreen(
             }
         }
 
-        // Set TTS callback
         viewModel.setTtsCallback(object : TtsCallback {
             override fun speakInstruction(instruction: String) {
                 ttsManager.speakInstruction(instruction)
@@ -249,7 +216,6 @@ fun CookingStepScreen(
                 ttsManager.speakStepNumber(stepNumber, totalSteps)
             }
 
-            // Timer TTS methods
             override fun speakTimerStarted(minutes: Int) {
                 ttsManager.speakTimerStarted(minutes)
             }
@@ -279,15 +245,13 @@ fun CookingStepScreen(
             }
         })
 
-        // Then initialize TTS
         ttsManager.initialize()
     }
 
-    // Auto-start listening when permission is granted
     LaunchedEffect(hasRecordPermission) {
         if (hasRecordPermission) {
             voiceCommandManager.initialize()
-            delay(500) // Small delay to ensure everything is initialized
+            delay(500)
             voiceCommandManager.startListening(
                 onCommand = { command ->
                     scope.launch {
@@ -300,10 +264,9 @@ fun CookingStepScreen(
         }
     }
 
-    // Auto-speak when step changes
     LaunchedEffect(currentStepIndex, isTtsEnabled) {
         if (isTtsEnabled && hasRecordPermission) {
-            delay(500) // Small delay to let UI settle
+            delay(500)
             val step = recipe.steps.getOrNull(currentStepIndex)
             step?.let {
                 ttsManager.speakInstruction(it.instruction)
@@ -311,19 +274,14 @@ fun CookingStepScreen(
         }
     }
 
-    // Cleanup - only cleanup local resources, don't stop timers
-    // Timers continue running in background, user can return via notification
     DisposableEffect(Unit) {
         onDispose {
             voiceCommandManager.stopListening()
             voiceCommandManager.destroy()
             ttsManager.stop()
             ttsManager.destroy()
-            // Unbind service but keep timers running
             timerServiceBridge.unbindService()
             viewModel.setTimerServiceBridge(null)
-            // Don't call exitCookingMode() - timers should keep running
-            // exitCookingMode() is only called when user confirms exit via dialog
         }
     }
 
@@ -341,7 +299,6 @@ fun CookingStepScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        // Check if there are active timers
                         if (allActiveTimers.isNotEmpty()) {
                             showExitConfirmationDialog = true
                         } else {
@@ -365,7 +322,6 @@ fun CookingStepScreen(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Timer control button (only if step has duration)
                 val currentStep = recipe.steps.getOrNull(currentStepIndex)
                 if (currentStep?.durationMinutes != null) {
                     TimerControlButton(
@@ -377,7 +333,6 @@ fun CookingStepScreen(
                     )
                 }
 
-                // Voice control toggle
                 if (hasRecordPermission) {
                     FloatingActionButton(
                         onClick = {
@@ -401,7 +356,6 @@ fun CookingStepScreen(
                     }
                 }
 
-                // TTS toggle button
                 FloatingActionButton(
                     onClick = {
                         viewModel.toggleTts()
@@ -431,14 +385,12 @@ fun CookingStepScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Voice recognition feedback
             VoiceRecognitionFeedback(
                 isListening = isListening,
                 recognizedText = recognizedText,
                 isPaused = isPaused
             )
 
-            // TTS speaking feedback
             if (isTtsSpeaking) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -466,12 +418,10 @@ fun CookingStepScreen(
                 }
             }
 
-            // Timer status bar (shows countdown for current step)
             currentStepTimer?.let { timer ->
                 TimerStatusBar(timer = timer)
             }
 
-            // Active timers overview (shows all timers from other steps)
             if (allActiveTimers.isNotEmpty()) {
                 ActiveTimersOverview(
                     timers = allActiveTimers,
@@ -484,28 +434,22 @@ fun CookingStepScreen(
                 )
             }
 
-            // Debug: Show all recognized text
             DebugRecognizedTextDisplay(
                 allRecognizedText = allRecognizedText
             )
 
-            // Horizontal pager for step navigation
-            // Only show when initialized to avoid visual jump from initial page to target page
             if (cookingInitialized && targetStepIndex != null) {
-                // Create pager state here so it's initialized with the correct page
                 val pagerState = rememberPagerState(
                     initialPage = targetStepIndex!!.coerceIn(0, recipe.steps.size - 1),
                     pageCount = { recipe.steps.size }
                 )
 
-                // Sync pager with ViewModel (user swipes)
                 LaunchedEffect(pagerState.currentPage) {
                     if (!isUpdatingFromViewModel && pagerState.currentPage != currentStepIndex) {
                         viewModel.goToStep(pagerState.currentPage)
                     }
                 }
 
-                // Sync ViewModel with pager (voice commands or programmatic navigation)
                 LaunchedEffect(currentStepIndex) {
                     if (pagerState.currentPage != currentStepIndex) {
                         isUpdatingFromViewModel = true
@@ -526,7 +470,6 @@ fun CookingStepScreen(
                     )
                 }
             } else {
-                // Loading placeholder while determining target step
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -537,7 +480,6 @@ fun CookingStepScreen(
                 }
             }
 
-            // Navigation hints
             NavigationHints(
                 currentStep = currentStepIndex,
                 totalSteps = recipe.steps.size
@@ -545,21 +487,17 @@ fun CookingStepScreen(
         }
     }
 
-    // Exit confirmation dialog
     if (showExitConfirmationDialog) {
         ExitCookingConfirmationDialog(
             activeTimers = allActiveTimers,
             onKeepCooking = { showExitConfirmationDialog = false },
             onExitAndStopTimers = {
                 showExitConfirmationDialog = false
-                // Stop all timers and clear cooking state before navigating back
                 viewModel.exitCookingMode()
                 onNavigateBack()
             }
         )
     }
-
-    // Helper function to find step with lowest timer
     fun findStepWithLowestTimer(): Int {
         val activeTimersList = timerServiceBridge.getActiveTimersForRecipe(recipe.id)
         return if (activeTimersList.isNotEmpty()) {
@@ -569,22 +507,18 @@ fun CookingStepScreen(
         }
     }
 
-    // Resume or Start Fresh dialog (same recipe)
     if (showResumeDialog) {
         ResumeCookingDialog(
             onContinue = {
                 showResumeDialog = false
-                // Restore timer state and continue cooking at step with lowest timer
                 viewModel.restoreTimerStateFromService(recipe.id)
                 val computedTargetStep = findStepWithLowestTimer()
                 targetStepIndex = computedTargetStep
-                // Pager will be created with correct initial page via targetStepIndex
                 viewModel.startOrResumeCookingMode(recipe, computedTargetStep)
                 cookingInitialized = true
             },
             onStartFresh = {
                 showResumeDialog = false
-                // Clear all existing timers and start fresh
                 targetStepIndex = initialStepIndex
                 viewModel.startCookingFresh(recipe, initialStepIndex)
                 cookingInitialized = true
@@ -592,30 +526,23 @@ fun CookingStepScreen(
         )
     }
 
-    // Different recipe warning dialog
     if (showDifferentRecipeDialog) {
         DifferentRecipeWarningDialog(
             onStopAndStart = {
                 showDifferentRecipeDialog = false
-                // Stop all existing timers from other recipe and start this one
-                viewModel.exitCookingMode() // This clears all timers
+                viewModel.exitCookingMode()
                 targetStepIndex = initialStepIndex
                 viewModel.startCookingMode(recipe, initialStepIndex)
                 cookingInitialized = true
             },
             onGoBack = {
                 showDifferentRecipeDialog = false
-                // Go back to previous screen
                 onNavigateBack()
             }
         )
     }
 }
 
-/**
- * Exit cooking confirmation dialog
- * Shows list of active timers and asks user to confirm exit
- */
 @Composable
 fun ExitCookingConfirmationDialog(
     activeTimers: List<Pair<Int, com.example.cookingassistant.model.TimerState>>,
@@ -669,17 +596,13 @@ fun ExitCookingConfirmationDialog(
     )
 }
 
-/**
- * Resume cooking dialog
- * Asks user to continue with existing timers or start fresh
- */
 @Composable
 fun ResumeCookingDialog(
     onContinue: () -> Unit,
     onStartFresh: () -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = onContinue, // Default to continue if dismissed
+        onDismissRequest = onContinue,
         title = {
             Text(text = stringResource(R.string.resume_cooking_title))
         },
@@ -702,17 +625,13 @@ fun ResumeCookingDialog(
     )
 }
 
-/**
- * Different recipe warning dialog
- * Warns user that starting a new recipe will stop existing timers from another recipe
- */
 @Composable
 fun DifferentRecipeWarningDialog(
     onStopAndStart: () -> Unit,
     onGoBack: () -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = onGoBack, // Default to go back if dismissed
+        onDismissRequest = onGoBack,
         title = {
             Text(text = stringResource(R.string.different_recipe_title))
         },
@@ -735,9 +654,6 @@ fun DifferentRecipeWarningDialog(
     )
 }
 
-/**
- * Individual cooking step content
- */
 @Composable
 fun CookingStepContent(
     step: com.example.cookingassistant.model.RecipeStep,
@@ -757,7 +673,6 @@ fun CookingStepContent(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                // Step number badge
                 Surface(
                     color = MaterialTheme.colorScheme.primary,
                     shape = MaterialTheme.shapes.medium
@@ -772,7 +687,6 @@ fun CookingStepContent(
                 }
             }
 
-            // Media items (photos/videos)
             if (step.mediaItems.isNotEmpty()) {
                 item {
                     StepMediaGallery(mediaItems = step.mediaItems)
@@ -780,7 +694,6 @@ fun CookingStepContent(
             }
 
             item {
-                // Instruction text
                 Text(
                     text = step.instruction,
                     style = MaterialTheme.typography.headlineSmall,
@@ -789,7 +702,6 @@ fun CookingStepContent(
                 )
             }
 
-            // Show duration if available
             step.durationMinutes?.let { duration ->
                 item {
                     Text(
@@ -800,7 +712,6 @@ fun CookingStepContent(
                 }
             }
 
-            // Show tips if available
             step.tips?.let { tips ->
                 item {
                     Surface(
@@ -829,17 +740,12 @@ fun CookingStepContent(
     }
 }
 
-/**
- * Displays media items (photos/videos) for a cooking step
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StepMediaGallery(mediaItems: List<com.example.cookingassistant.model.StepMedia>) {
     if (mediaItems.size == 1) {
-        // Single media item - display directly
         StepMediaItem(media = mediaItems[0])
     } else {
-        // Multiple media items - use pager
         val mediaPagerState = rememberPagerState(pageCount = { mediaItems.size })
 
         Column(
@@ -854,7 +760,6 @@ fun StepMediaGallery(mediaItems: List<com.example.cookingassistant.model.StepMed
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Page indicators
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
@@ -891,9 +796,6 @@ fun StepMediaGallery(mediaItems: List<com.example.cookingassistant.model.StepMed
     }
 }
 
-/**
- * Displays a single media item (photo or video)
- */
 @Composable
 fun StepMediaItem(media: com.example.cookingassistant.model.StepMedia) {
     Column(
@@ -912,7 +814,6 @@ fun StepMediaItem(media: com.example.cookingassistant.model.StepMedia) {
                 )
             }
             MediaType.VIDEO -> {
-                // For videos, display thumbnail if available, otherwise show video icon
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -928,7 +829,6 @@ fun StepMediaItem(media: com.example.cookingassistant.model.StepMedia) {
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // Fallback: try to load video directly with Coil
                         AsyncImage(
                             model = media.uri,
                             contentDescription = media.caption,
@@ -937,7 +837,6 @@ fun StepMediaItem(media: com.example.cookingassistant.model.StepMedia) {
                         )
                     }
 
-                    // Video play indicator overlay
                     Surface(
                         color = Color.Black.copy(alpha = 0.5f),
                         shape = CircleShape,
@@ -959,7 +858,6 @@ fun StepMediaItem(media: com.example.cookingassistant.model.StepMedia) {
             }
         }
 
-        // Caption if available
         media.caption?.let { caption ->
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -973,9 +871,6 @@ fun StepMediaItem(media: com.example.cookingassistant.model.StepMedia) {
     }
 }
 
-/**
- * Voice recognition feedback indicator
- */
 @Composable
 fun VoiceRecognitionFeedback(
     isListening: Boolean,
@@ -994,7 +889,6 @@ fun VoiceRecognitionFeedback(
         else -> MaterialTheme.colorScheme.onSecondaryContainer
     }
 
-    // Debug: Always show recognizedText if available, with status
     val displayText = when {
         isPaused -> stringResource(R.string.voice_control_paused)
         isListening && recognizedText != null -> "LISTENING: $recognizedText"
@@ -1035,9 +929,6 @@ fun VoiceRecognitionFeedback(
     }
 }
 
-/**
- * Navigation hints at the bottom of the screen
- */
 @Composable
 fun NavigationHints(
     currentStep: Int,
@@ -1053,7 +944,6 @@ fun NavigationHints(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Progress indicator
             LinearProgressIndicator(
                 progress = { (currentStep + 1).toFloat() / totalSteps },
                 modifier = Modifier
@@ -1063,7 +953,6 @@ fun NavigationHints(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Voice command hints
             Text(
                 text = stringResource(R.string.voice_commands_hint),
                 style = MaterialTheme.typography.bodySmall,
@@ -1083,9 +972,6 @@ fun NavigationHints(
     }
 }
 
-/**
- * Debug display showing all recognized text (for testing voice recognition)
- */
 @Composable
 fun DebugRecognizedTextDisplay(
     allRecognizedText: List<String>
@@ -1118,7 +1004,7 @@ fun DebugRecognizedTextDisplay(
                 ) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        reverseLayout = true // Show newest at bottom
+                        reverseLayout = true
                     ) {
                         items(allRecognizedText.size) { index ->
                             val reversedIndex = allRecognizedText.size - 1 - index

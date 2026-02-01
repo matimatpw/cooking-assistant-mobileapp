@@ -27,10 +27,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/**
- * Callback interface for Text-to-Speech functionality
- * Allows ViewModel to trigger TTS without direct dependency on Android TTS API
- */
 interface TtsCallback {
     fun speakInstruction(instruction: String)
     fun speakIngredients(ingredients: List<Ingredient>)
@@ -38,7 +34,6 @@ interface TtsCallback {
     fun speakTips(tips: String)
     fun speakStepNumber(stepNumber: Int, totalSteps: Int)
 
-    // Timer-specific TTS methods
     fun speakTimerStarted(minutes: Int)
     fun speakTimerPaused(minutes: Int, seconds: Int)
     fun speakTimerResumed()
@@ -48,10 +43,6 @@ interface TtsCallback {
     fun speakMessage(message: String)
 }
 
-/**
- * ViewModel for managing recipe data and step navigation
- * Follows MVVM pattern - exposes state via StateFlow, no UI references
- */
 class RecipeViewModel(
     private val repository: CachedRecipeRepository? = null,
     private val widgetPreferences: WidgetPreferences? = null,
@@ -62,46 +53,35 @@ class RecipeViewModel(
         private const val TAG = "RecipeViewModel"
     }
 
-    // UI state for recipe list screen
     private val _state = MutableStateFlow<RecipeListState>(RecipeListState.Loading)
     val state: StateFlow<RecipeListState> = _state.asStateFlow()
 
-    // Legacy: Keep recipes for backward compatibility with existing screens
     private val _recipes = MutableStateFlow<List<Recipe>>(emptyList())
     val recipes: StateFlow<List<Recipe>> = _recipes.asStateFlow()
 
-    // Current step index for cooking mode
     private val _currentStepIndex = MutableStateFlow(0)
     val currentStepIndex: StateFlow<Int> = _currentStepIndex.asStateFlow()
 
-    // Currently active recipe in cooking mode
     private val _activeRecipe = MutableStateFlow<Recipe?>(null)
     val activeRecipe: StateFlow<Recipe?> = _activeRecipe.asStateFlow()
 
-    // Selected tab index (0 = Explore, 1 = My Recipes)
     private val _selectedTabIndex = MutableStateFlow(0)
     val selectedTabIndex: StateFlow<Int> = _selectedTabIndex.asStateFlow()
 
-    // Recipe draft for add/edit screen
     private val _recipeDraft = MutableStateFlow<RecipeDraft?>(null)
     val recipeDraft: StateFlow<RecipeDraft?> = _recipeDraft.asStateFlow()
 
-    // Filter state for recipe filtering
     private val _filters = MutableStateFlow(RecipeFilters())
     val filters: StateFlow<RecipeFilters> = _filters.asStateFlow()
 
-    // Text-to-Speech state
-    private val _isTtsEnabled = MutableStateFlow(true) // Auto-enabled by default
+    private val _isTtsEnabled = MutableStateFlow(true)
     val isTtsEnabled: StateFlow<Boolean> = _isTtsEnabled.asStateFlow()
 
-    // TTS callback (set by UI layer with TextToSpeechManager)
     private var ttsCallback: TtsCallback? = null
 
-    // Timer state management
     private val _timers = MutableStateFlow<Map<Int, TimerState>>(emptyMap())
     val timers: StateFlow<Map<Int, TimerState>> = _timers.asStateFlow()
 
-    // Timer for current step (convenience accessor)
     val currentStepTimer: StateFlow<TimerState?> = combine(
         _currentStepIndex,
         _timers
@@ -109,21 +89,14 @@ class RecipeViewModel(
         timersMap[stepIndex]
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // Timer service bridge (set by UI layer)
     private var timerServiceBridge: TimerServiceBridge? = null
 
-    // Timer alarm callback (set by UI layer)
     private var timerAlarmCallback: TimerAlarmCallback? = null
 
     init {
-        // Load recipes from cache on startup
         loadRecipes()
     }
 
-    /**
-     * Loads recipes from local cache immediately.
-     * This provides fast app startup with cached data.
-     */
     fun loadRecipes() {
         if (repository != null) {
             viewModelScope.launch {
@@ -138,7 +111,6 @@ class RecipeViewModel(
                     }
                     .onFailure { error ->
                         Log.e(TAG, "Failed to load recipes from cache", error)
-                        // Fall back to hardcoded recipes
                         loadHardcodedRecipes()
                         _state.value = RecipeListState.Success(_recipes.value)
                     }
@@ -150,16 +122,11 @@ class RecipeViewModel(
         }
     }
 
-    /**
-     * Fetches fresh recipes from remote API and updates cache.
-     * Used for pull-to-refresh functionality.
-     */
     fun refreshRecipes() {
         if (repository != null) {
             viewModelScope.launch {
                 Log.d(TAG, "Refreshing recipes from remote API...")
 
-                // Show refreshing state with current recipes
                 val currentRecipes = when (val currentState = _state.value) {
                     is RecipeListState.Success -> currentState.recipes
                     is RecipeListState.Error -> currentState.cachedRecipes
@@ -190,26 +157,12 @@ class RecipeViewModel(
         }
     }
 
-    /**
-     * Updates the selected tab index.
-     * @param index Tab index (0 = Explore, 1 = My Recipes, 2 = Swipe Module)
-     */
     fun selectTab(index: Int) {
         require(index in 0..2) { "Invalid tab index: $index. Must be 0 or 1 or 2." }
         _selectedTabIndex.value = index
     }
 
-    /**
-     * Gets recipes filtered by the selected tab and active filters.
-     * Tab 0 (Explore): Returns bundled recipes (isCustom = false)
-     * Tab 1 (My Recipes): Returns custom recipes (isCustom = true)
-     *
-     * @param tabIndex Tab index to filter for
-     * @param recipes Full list of recipes
-     * @return Filtered list based on tab selection and active filters
-     */
     fun getRecipesForTab(tabIndex: Int, recipes: List<Recipe>): List<Recipe> {
-        // First filter by tab
         val tabFiltered = when (tabIndex) {
             0 -> recipes.filter { !it.isCustom } // Explore: bundled recipes
             1 -> recipes.filter { it.isCustom }  // My Recipes: custom recipes
@@ -217,40 +170,27 @@ class RecipeViewModel(
             else -> recipes // Fallback: show all
         }
 
-        // Then apply additional filters
         return applyFilters(tabFiltered, _filters.value)
     }
 
-    /**
-     * Apply filters to a list of recipes
-     *
-     * @param recipes List of recipes to filter
-     * @param filters Filter criteria to apply
-     * @return Filtered list of recipes
-     */
     fun applyFilters(recipes: List<Recipe>, filters: RecipeFilters): List<Recipe> {
         if (!filters.hasActiveFilters()) {
             return recipes
         }
 
         return recipes.filter { recipe ->
-            // Filter by meal types
             val matchesMealType = filters.mealTypes.isEmpty() ||
                     filters.mealTypes.any { it in recipe.categories }
 
-            // Filter by dietary preferences
             val matchesDietary = filters.dietaryPreferences.isEmpty() ||
                     filters.dietaryPreferences.all { it in recipe.categories }
 
-            // Filter by cuisines
             val matchesCuisine = filters.cuisines.isEmpty() ||
                     filters.cuisines.any { it in recipe.categories }
 
-            // Filter by difficulty
             val matchesDifficulty = filters.difficulties.isEmpty() ||
                     recipe.difficulty in filters.difficulties
 
-            // Filter by cooking time
             val matchesCookingTime = (filters.minCookingTime == null || recipe.cookingTime >= filters.minCookingTime) &&
                     (filters.maxCookingTime == null || recipe.cookingTime <= filters.maxCookingTime)
 
@@ -258,26 +198,12 @@ class RecipeViewModel(
         }
     }
 
-    /**
-     * Update active filters
-     *
-     * @param filters New filter criteria
-     */
     fun updateFilters(filters: RecipeFilters) {
         _filters.value = filters
     }
-
-    /**
-     * Clear all active filters
-     */
     fun clearFilters() {
         _filters.value = RecipeFilters()
     }
-
-    /**
-     * Loads hardcoded recipe data into the state
-     * Used as fallback or for testing
-     */
     private fun loadHardcodedRecipes() {
         val now = System.currentTimeMillis()
         _recipes.value = listOf(
@@ -524,75 +450,42 @@ class RecipeViewModel(
         )
     }
 
-    /**
-     * Finds a recipe by its ID
-     * @param id The recipe ID to search for
-     * @return Recipe object or null if not found
-     */
     fun getRecipeById(id: String): Recipe? {
         return _recipes.value.find { it.id == id }
     }
-
-    /**
-     * Start cooking mode for a recipe
-     * @param recipe The recipe to start cooking
-     */
     fun startCookingMode(recipe: Recipe, initialStepIndex: Int = 0) {
         _activeRecipe.value = recipe
-        // Use initial step index, but ensure it's within valid range
         val validStepIndex = initialStepIndex.coerceIn(0, recipe.steps.size - 1)
         _currentStepIndex.value = validStepIndex
 
-        // Track cooking session for widget
         widgetPreferences?.setActiveCookingSession(recipe.id, validStepIndex)
         triggerWidgetUpdate()
     }
 
-    /**
-     * Start or resume cooking mode for a recipe
-     * If already cooking the same recipe, preserves timer state and navigates to step
-     * If not cooking or cooking a different recipe, starts fresh
-     * @param recipe The recipe to cook
-     * @param stepIndex The step to navigate to
-     */
     fun startOrResumeCookingMode(recipe: Recipe, stepIndex: Int = 0) {
         val validStepIndex = stepIndex.coerceIn(0, recipe.steps.size - 1)
 
         if (_activeRecipe.value?.id == recipe.id) {
-            // Already cooking this recipe - just navigate to step, preserve timers
             Log.d(TAG, "Resuming cooking mode for ${recipe.name}, navigating to step $validStepIndex")
             _currentStepIndex.value = validStepIndex
             widgetPreferences?.setActiveCookingSession(recipe.id, validStepIndex)
             triggerWidgetUpdate()
         } else {
-            // Not cooking or different recipe - start fresh
             Log.d(TAG, "Starting new cooking mode for ${recipe.name} at step $validStepIndex")
             startCookingMode(recipe, validStepIndex)
         }
     }
 
-    /**
-     * Check if there are active timers running in the background for a recipe
-     * @param recipeId The recipe ID to check
-     * @return true if there are active timers
-     */
     fun hasActiveTimersForRecipe(recipeId: String): Boolean {
-        // First check ViewModel state
         if (_timers.value.isNotEmpty()) {
             return _timers.value.values.any {
                 it.recipeId == recipeId &&
                 (it.status == TimerStatus.RUNNING || it.status == TimerStatus.PAUSED)
             }
         }
-        // Fall back to checking the service
         return timerServiceBridge?.hasActiveTimersForRecipe(recipeId) ?: false
     }
 
-    /**
-     * Restore timer state from the background service
-     * Called when returning to cooking mode to sync UI with running timers
-     * @param recipeId The recipe ID to restore timers for
-     */
     fun restoreTimerStateFromService(recipeId: String) {
         val activeTimers = timerServiceBridge?.getActiveTimersForRecipe(recipeId) ?: return
 
@@ -604,7 +497,6 @@ class RecipeViewModel(
         Log.d(TAG, "Restoring ${activeTimers.size} timer(s) from service for recipe $recipeId")
 
         activeTimers.forEach { timerData ->
-            // IMPORTANT: Preserve the original timer ID so updates from service match
             val timerState = TimerState(
                 stepIndex = timerData.stepIndex,
                 recipeId = recipeId,
@@ -612,22 +504,15 @@ class RecipeViewModel(
                 remainingSeconds = timerData.remainingSeconds,
                 status = TimerStatus.RUNNING,
                 startTimestamp = System.currentTimeMillis(),
-                timerId = timerData.timerId // Preserve original ID!
+                timerId = timerData.timerId
             )
             _timers.value = _timers.value + (timerData.stepIndex to timerState)
             Log.d(TAG, "Restored timer for step ${timerData.stepIndex}: ${timerData.remainingSeconds}s remaining (ID: ${timerData.timerId})")
         }
     }
-
-    /**
-     * Start cooking fresh - clears any existing timers for the recipe
-     * @param recipe The recipe to cook
-     * @param stepIndex The step to start at
-     */
     fun startCookingFresh(recipe: Recipe, stepIndex: Int = 0) {
         Log.d(TAG, "Starting cooking fresh for ${recipe.name}")
 
-        // Stop any existing timers for this recipe
         val existingTimerSteps = _timers.value
             .filter { it.value.recipeId == recipe.id }
             .keys.toList()
@@ -636,17 +521,11 @@ class RecipeViewModel(
             timerServiceBridge?.stopAllTimersAndCleanup(existingTimerSteps)
         }
 
-        // Clear timer state
         _timers.value = _timers.value.filterNot { it.value.recipeId == recipe.id }
 
-        // Start cooking mode
         startCookingMode(recipe, stepIndex)
     }
 
-    /**
-     * Navigate to the next step
-     * @return true if navigation successful, false if already at last step
-     */
     fun nextStep(): Boolean {
         val recipe = _activeRecipe.value ?: return false
         val currentIndex = _currentStepIndex.value
@@ -655,7 +534,6 @@ class RecipeViewModel(
         return if (currentIndex < maxIndex) {
             _currentStepIndex.value = currentIndex + 1
 
-            // Track step change for widget
             widgetPreferences?.setActiveCookingSession(recipe.id, currentIndex + 1)
             triggerWidgetUpdate()
 
@@ -664,11 +542,6 @@ class RecipeViewModel(
             false
         }
     }
-
-    /**
-     * Navigate to the previous step
-     * @return true if navigation successful, false if already at first step
-     */
     fun previousStep(): Boolean {
         val recipe = _activeRecipe.value
         val currentIndex = _currentStepIndex.value
@@ -676,7 +549,6 @@ class RecipeViewModel(
         return if (currentIndex > 0) {
             _currentStepIndex.value = currentIndex - 1
 
-            // Track step change for widget
             recipe?.let {
                 widgetPreferences?.setActiveCookingSession(it.id, currentIndex - 1)
                 triggerWidgetUpdate()
@@ -688,10 +560,6 @@ class RecipeViewModel(
         }
     }
 
-    /**
-     * Go to a specific step
-     * @param stepIndex The step index to navigate to
-     */
     fun goToStep(stepIndex: Int) {
         val recipe = _activeRecipe.value ?: return
         val maxIndex = recipe.steps.size - 1
@@ -699,32 +567,21 @@ class RecipeViewModel(
         if (stepIndex in 0..maxIndex) {
             _currentStepIndex.value = stepIndex
 
-            // Track step change for widget
             widgetPreferences?.setActiveCookingSession(recipe.id, stepIndex)
             triggerWidgetUpdate()
         }
     }
 
-    /**
-     * Reset to first step
-     */
     fun resetToFirstStep() {
         val recipe = _activeRecipe.value
         _currentStepIndex.value = 0
 
-        // Track step change for widget
         recipe?.let {
             widgetPreferences?.setActiveCookingSession(it.id, 0)
             triggerWidgetUpdate()
         }
     }
 
-    // ========== Timer Management Methods ==========
-
-    /**
-     * Start timer for current step
-     * Creates a new timer and notifies the service to begin countdown
-     */
     fun startTimer() {
         val recipe = _activeRecipe.value ?: run {
             Log.w(TAG, "Cannot start timer: no active recipe")
@@ -752,16 +609,12 @@ class RecipeViewModel(
         _timers.value = _timers.value + (stepIndex to timerState)
         timerServiceBridge?.startTimer(timerState)
 
-        // Track which recipe has active timers for widget
         widgetPreferences?.setActiveTimerRecipe(recipe.id)
         triggerWidgetUpdate()
 
         Log.d(TAG, "Started timer for step $stepIndex: ${durationMinutes}min (ID: ${timerState.timerId})")
     }
 
-    /**
-     * Pause timer for current step
-     */
     fun pauseTimer() {
         val stepIndex = _currentStepIndex.value
         val timer = _timers.value[stepIndex] ?: run {
@@ -785,9 +638,6 @@ class RecipeViewModel(
         Log.d(TAG, "Paused timer for step $stepIndex")
     }
 
-    /**
-     * Resume paused timer for current step
-     */
     fun resumeTimer() {
         val stepIndex = _currentStepIndex.value
         val timer = _timers.value[stepIndex] ?: run {
@@ -802,7 +652,7 @@ class RecipeViewModel(
 
         val updatedTimer = timer.copy(
             status = TimerStatus.RUNNING,
-            startTimestamp = System.currentTimeMillis(), // Reset start time
+            startTimestamp = System.currentTimeMillis(),
             pauseTimestamp = null
         )
 
@@ -812,9 +662,6 @@ class RecipeViewModel(
         Log.d(TAG, "Resumed timer for step $stepIndex")
     }
 
-    /**
-     * Stop/cancel timer for current step
-     */
     fun stopTimer() {
         val stepIndex = _currentStepIndex.value
         val timer = _timers.value[stepIndex] ?: run {
@@ -829,18 +676,12 @@ class RecipeViewModel(
 
         Log.d(TAG, "Stopped timer for step $stepIndex")
 
-        // Remove cancelled timer after short delay
         viewModelScope.launch {
             delay(2000)
             _timers.value = _timers.value - stepIndex
         }
     }
 
-    /**
-     * Update timer state (called by service during countdown)
-     * @param timerId Unique timer identifier
-     * @param remainingSeconds Updated remaining time in seconds
-     */
     fun updateTimerState(timerId: String, remainingSeconds: Int) {
         val stepIndex = _timers.value.entries.find { it.value.timerId == timerId }?.key ?: run {
             Log.w(TAG, "Cannot update timer: timer ID $timerId not found")
@@ -851,17 +692,11 @@ class RecipeViewModel(
         val updatedTimer = timer.copy(remainingSeconds = remainingSeconds)
         _timers.value = _timers.value + (stepIndex to updatedTimer)
 
-        // Check if finished
         if (remainingSeconds <= 0 && timer.status == TimerStatus.RUNNING) {
             onTimerFinished(timerId)
         }
     }
 
-    /**
-     * Handle timer completion
-     * Triggers alarm system (TTS, vibration, sound)
-     * @param timerId Unique timer identifier
-     */
     private fun onTimerFinished(timerId: String) {
         val stepIndex = _timers.value.entries.find { it.value.timerId == timerId }?.key ?: return
         val timer = _timers.value[stepIndex] ?: return
@@ -869,67 +704,35 @@ class RecipeViewModel(
         val updatedTimer = timer.copy(status = TimerStatus.FINISHED)
         _timers.value = _timers.value + (stepIndex to updatedTimer)
 
-        // Trigger alarm via callback
         timerAlarmCallback?.onTimerFinished(timer)
 
         Log.d(TAG, "Timer finished for step $stepIndex")
     }
 
-    /**
-     * Get all active timers (RUNNING or PAUSED)
-     * @return List of (stepIndex, TimerState) pairs sorted by step index
-     */
     fun getAllActiveTimers(): List<Pair<Int, TimerState>> {
         return _timers.value
             .filter { it.value.status == TimerStatus.RUNNING || it.value.status == TimerStatus.PAUSED }
             .toList()
             .sortedBy { it.first }
     }
-
-    /**
-     * Set timer service bridge for communication with TimerService
-     * @param bridge The service bridge implementation
-     */
     fun setTimerServiceBridge(bridge: TimerServiceBridge?) {
         timerServiceBridge = bridge
     }
 
-    /**
-     * Set timer alarm callback for alarm notifications
-     * @param callback The alarm callback implementation
-     */
     fun setTimerAlarmCallback(callback: TimerAlarmCallback?) {
         timerAlarmCallback = callback
     }
 
-    // ========== End Timer Management Methods ==========
-
-    /**
-     * Set TTS callback for text-to-speech functionality
-     * @param callback The TTS callback to use
-     */
     fun setTtsCallback(callback: TtsCallback?) {
         ttsCallback = callback
     }
-
-    /**
-     * Toggle TTS enabled state
-     */
     fun toggleTts() {
         _isTtsEnabled.value = !_isTtsEnabled.value
     }
 
-    /**
-     * Set TTS enabled state
-     * @param enabled Whether TTS should be enabled
-     */
     fun setTtsEnabled(enabled: Boolean) {
         _isTtsEnabled.value = enabled
     }
-
-    /**
-     * Auto-speak current step instruction (called on step navigation)
-     */
     private fun autoSpeakCurrentStep() {
         if (!_isTtsEnabled.value) return
 
@@ -941,17 +744,12 @@ class RecipeViewModel(
         ttsCallback?.speakInstruction(step.instruction)
     }
 
-    /**
-     * Process voice command
-     * @param command The voice command to process
-     */
     fun processVoiceCommand(command: VoiceCommand) {
         val recipe = _activeRecipe.value
         val stepIndex = _currentStepIndex.value
         val step = recipe?.steps?.getOrNull(stepIndex)
 
         when (command) {
-            // Navigation commands (with auto-speak)
             VoiceCommand.NEXT -> {
                 if (nextStep()) {
                     autoSpeakCurrentStep()
@@ -967,11 +765,9 @@ class RecipeViewModel(
                 autoSpeakCurrentStep()
             }
             VoiceCommand.REPEAT -> {
-                // Repeat current step instruction
                 step?.let { ttsCallback?.speakInstruction(it.instruction) }
             }
 
-            // Text-to-Speech commands
             VoiceCommand.INGREDIENTS -> {
                 Log.d(TAG, "INGREDIENTS command - step: $step, callback: ${ttsCallback != null}")
                 step?.let {
@@ -979,7 +775,6 @@ class RecipeViewModel(
                         Log.d(TAG, "Speaking ${it.ingredients.size} step ingredients")
                         ttsCallback?.speakIngredients(it.ingredients)
                     } else {
-                        // Fallback to recipe-level ingredients
                         Log.d(TAG, "No step ingredients, using recipe-level (${recipe?.ingredients?.size} items)")
                         recipe?.let { r -> ttsCallback?.speakIngredients(r.ingredients) }
                     }
@@ -1006,7 +801,6 @@ class RecipeViewModel(
                 }
             }
 
-            // Timer commands
             VoiceCommand.START_TIMER -> {
                 Log.d(TAG, "START_TIMER command - step: $stepIndex, duration: ${step?.durationMinutes}")
                 if (step?.durationMinutes != null) {
@@ -1077,30 +871,21 @@ class RecipeViewModel(
         }
     }
 
-    /**
-     * Exit cooking mode
-     * Stops all active timers and cleans up state
-     */
     fun exitCookingMode() {
-        // Collect step indices that had timers (for notification cleanup)
         val stepIndices = _timers.value.keys.toList()
 
-        // Stop all timers and cleanup notifications in one operation
         if (stepIndices.isNotEmpty()) {
             timerServiceBridge?.stopAllTimersAndCleanup(stepIndices)
         }
         _timers.value = emptyMap()
 
-        // Clean up cooking mode state
         _activeRecipe.value = null
         _currentStepIndex.value = 0
 
-        // Clear cooking session and active timer recipe from widget
         widgetPreferences?.clearCookingSession()
         widgetPreferences?.clearActiveTimerRecipe()
         triggerWidgetUpdate()
 
-        // Clean up callbacks and bridges
         ttsCallback = null
         timerServiceBridge = null
         timerAlarmCallback = null
@@ -1108,9 +893,6 @@ class RecipeViewModel(
         Log.d(TAG, "Exited cooking mode, cleaned up all timers")
     }
 
-    /**
-     * Trigger widget update after state changes
-     */
     private fun triggerWidgetUpdate() {
         context?.let { ctx ->
             WidgetUpdater.updateWidgets(ctx)
@@ -1118,17 +900,12 @@ class RecipeViewModel(
         }
     }
 
-    /**
-     * Save a new recipe
-     * @param recipe The recipe to save
-     */
     fun saveRecipe(recipe: Recipe) {
         if (repository != null) {
             viewModelScope.launch {
                 repository.saveRecipe(recipe)
                     .onSuccess { recipeId ->
                         Log.d(TAG, "Recipe saved with ID: $recipeId")
-                        // Reload recipes to include the new one
                         loadRecipes()
                     }
                     .onFailure { error ->
@@ -1139,18 +916,12 @@ class RecipeViewModel(
             Log.w(TAG, "Cannot save recipe: repository is null")
         }
     }
-
-    /**
-     * Update an existing recipe
-     * @param recipe The recipe to update
-     */
     fun updateRecipe(recipe: Recipe) {
         if (repository != null) {
             viewModelScope.launch {
                 repository.updateRecipe(recipe)
                     .onSuccess {
                         Log.d(TAG, "Recipe updated: ${recipe.id}")
-                        // Reload recipes to reflect changes
                         loadRecipes()
                     }
                     .onFailure { error ->
@@ -1162,17 +933,12 @@ class RecipeViewModel(
         }
     }
 
-    /**
-     * Delete a recipe
-     * @param recipeId The ID of the recipe to delete
-     */
     fun deleteRecipe(recipeId: String) {
         if (repository != null) {
             viewModelScope.launch {
                 repository.deleteRecipe(recipeId)
                     .onSuccess {
                         Log.d(TAG, "Recipe deleted: $recipeId")
-                        // Reload recipes to remove the deleted one
                         loadRecipes()
                     }
                     .onFailure { error ->
@@ -1184,35 +950,20 @@ class RecipeViewModel(
         }
     }
 
-    /**
-     * Save recipe draft
-     * @param draft The recipe draft to save
-     */
     fun saveDraft(draft: RecipeDraft) {
         Log.d(TAG, "Saving recipe draft")
         _recipeDraft.value = draft
     }
 
-    /**
-     * Load recipe draft
-     * @return The saved draft, or null if none exists
-     */
     fun loadDraft(): RecipeDraft? {
         return _recipeDraft.value
     }
 
-    /**
-     * Clear recipe draft
-     */
     fun clearDraft() {
         Log.d(TAG, "Clearing recipe draft")
         _recipeDraft.value = null
     }
 
-    /**
-     * Check if a draft exists
-     * @return true if a draft exists, false otherwise
-     */
     fun hasDraft(): Boolean {
         return _recipeDraft.value != null
     }

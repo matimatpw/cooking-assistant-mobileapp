@@ -17,11 +17,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
 
-/**
- * Test suite for FileRecipeRepository following TDD principles.
- * Tests the complete recipe storage functionality including CRUD operations,
- * search, and file management.
- */
 @RunWith(RobolectricTestRunner::class)
 class FileRecipeRepositoryTest {
 
@@ -35,18 +30,15 @@ class FileRecipeRepositoryTest {
         context = RuntimeEnvironment.getApplication()
         testRecipesDir = File(context.filesDir, "recipes_test")
 
-        // Clean up any existing test data
         if (testRecipesDir.exists()) {
             testRecipesDir.deleteRecursively()
         }
 
-        // Create repository with test directory
         repository = FileRecipeRepository(context, testDispatcher, "recipes_test")
     }
 
     @After
     fun teardown() {
-        // Clean up test data
         if (testRecipesDir.exists()) {
             testRecipesDir.deleteRecursively()
         }

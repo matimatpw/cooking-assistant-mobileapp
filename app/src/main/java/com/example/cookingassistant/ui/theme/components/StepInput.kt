@@ -39,10 +39,6 @@ import com.example.cookingassistant.model.MediaType
 import com.example.cookingassistant.model.RecipeStep
 import com.example.cookingassistant.model.StepMedia
 
-/**
- * Dynamic recipe step input list component
- * Allows adding, editing, and removing steps
- */
 @Composable
 fun StepInputList(
     steps: List<RecipeStep>,
@@ -53,7 +49,6 @@ fun StepInputList(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header with title and add button
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -90,7 +85,6 @@ fun StepInputList(
             }
         }
 
-        // List of step inputs
         if (steps.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -116,10 +110,8 @@ fun StepInputList(
                         onStepsChange(updatedList)
                     },
                     onRemove = {
-                        // Only allow removal if there's more than 1 step
                         if (steps.size > 1) {
                             val updatedList = steps.filterIndexed { i, _ -> i != index }
-                            // Renumber steps after removal
                             onStepsChange(
                                 updatedList.mapIndexed { i, s -> s.copy(stepNumber = i + 1) }
                             )
@@ -134,7 +126,6 @@ fun StepInputList(
                             val temp = updatedList[index]
                             updatedList[index] = updatedList[index - 1]
                             updatedList[index - 1] = temp
-                            // Renumber steps
                             onStepsChange(
                                 updatedList.mapIndexed { i, s -> s.copy(stepNumber = i + 1) }
                             )
@@ -146,7 +137,6 @@ fun StepInputList(
                             val temp = updatedList[index]
                             updatedList[index] = updatedList[index + 1]
                             updatedList[index + 1] = temp
-                            // Renumber steps
                             onStepsChange(
                                 updatedList.mapIndexed { i, s -> s.copy(stepNumber = i + 1) }
                             )
@@ -158,9 +148,6 @@ fun StepInputList(
     }
 }
 
-/**
- * Individual step input item
- */
 @Composable
 fun StepInputItem(
     step: RecipeStep,
@@ -186,7 +173,6 @@ fun StepInputItem(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Header with step number, move buttons, and delete button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -203,7 +189,6 @@ fun StepInputItem(
                         fontWeight = FontWeight.Bold
                     )
 
-                    // Move up button
                     TextButton(
                         onClick = onMoveUp,
                         enabled = canMoveUp,
@@ -213,7 +198,6 @@ fun StepInputItem(
                         Text("↑", style = MaterialTheme.typography.titleSmall)
                     }
 
-                    // Move down button
                     TextButton(
                         onClick = onMoveDown,
                         enabled = canMoveDown,
@@ -240,7 +224,6 @@ fun StepInputItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Instruction field (required)
             OutlinedTextField(
                 value = step.instruction,
                 onValueChange = { onStepChange(step.copy(instruction = it)) },
@@ -254,12 +237,10 @@ fun StepInputItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Duration and tips row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Duration field (optional)
                 OutlinedTextField(
                     value = step.durationMinutes?.toString() ?: "",
                     onValueChange = {
@@ -277,7 +258,6 @@ fun StepInputItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Tips field (optional)
             OutlinedTextField(
                 value = step.tips ?: "",
                 onValueChange = {
@@ -291,7 +271,6 @@ fun StepInputItem(
                 shape = RoundedCornerShape(8.dp)
             )
 
-            // Media items section
             Spacer(modifier = Modifier.height(8.dp))
 
             StepMediaPicker(
@@ -304,10 +283,6 @@ fun StepInputItem(
     }
 }
 
-/**
- * Media picker for recipe step
- * Allows adding multiple photos/videos to a step
- */
 @Composable
 fun StepMediaPicker(
     mediaItems: List<StepMedia>,
@@ -323,7 +298,6 @@ fun StepMediaPicker(
             style = MaterialTheme.typography.labelMedium
         )
 
-        // Display existing media items
         if (mediaItems.isNotEmpty()) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -340,7 +314,6 @@ fun StepMediaPicker(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Media preview
                             AsyncImage(
                                 model = mediaItem.uri,
                                 contentDescription = mediaItem.caption,
@@ -350,7 +323,6 @@ fun StepMediaPicker(
                                 contentScale = ContentScale.Fit
                             )
 
-                            // Media type and caption
                             Column(
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -370,7 +342,6 @@ fun StepMediaPicker(
                                 }
                             }
 
-                            // Remove button
                             IconButton(
                                 onClick = {
                                     val updatedList = mediaItems.filterIndexed { i, _ -> i != index }
@@ -391,7 +362,6 @@ fun StepMediaPicker(
             }
         }
 
-        // Add media button
         MediaPickerButton(
             label = if (mediaItems.isEmpty())
                 stringResource(R.string.add_step_photo)

@@ -8,12 +8,6 @@ import com.example.cookingassistant.model.RecipeCategory
 import com.example.cookingassistant.model.RecipeStep
 import kotlinx.coroutines.delay
 
-/**
- * Mock implementation of RemoteRecipeDataSource for development and testing.
- * Simulates network latency and returns hardcoded recipes.
- *
- * This will be replaced with a real API client in production.
- */
 class MockRemoteDataSource(
     private val networkDelayMs: Long = 1000
 ) : RemoteRecipeDataSource {
@@ -24,7 +18,7 @@ class MockRemoteDataSource(
 
     override suspend fun fetchAllRecipes(): Result<List<Recipe>> {
         Log.d(TAG, "Fetching all recipes from mock API...")
-        delay(networkDelayMs) // Simulate network latency
+        delay(networkDelayMs)
 
         return try {
             val recipes = generateMockRecipes()
@@ -93,7 +87,6 @@ class MockRemoteDataSource(
         delay(networkDelayMs)
 
         return try {
-            // In real implementation, this would POST to API and return server-assigned ID
             val recipeId = recipe.id.ifEmpty { "mock_${System.currentTimeMillis()}" }
             Log.d(TAG, "Recipe uploaded successfully with id=$recipeId")
             Result.success(recipeId)
@@ -108,7 +101,6 @@ class MockRemoteDataSource(
         delay(networkDelayMs)
 
         return try {
-            // In real implementation, this would PUT/PATCH to API
             Log.d(TAG, "Recipe updated successfully")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -122,7 +114,6 @@ class MockRemoteDataSource(
         delay(networkDelayMs)
 
         return try {
-            // In real implementation, this would DELETE from API
             Log.d(TAG, "Recipe deleted successfully")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -131,10 +122,6 @@ class MockRemoteDataSource(
         }
     }
 
-    /**
-     * Generates mock recipe data that simulates what would come from an API.
-     * These are the same recipes as bundled recipes to maintain consistency.
-     */
     private fun generateMockRecipes(): List<Recipe> {
         val now = System.currentTimeMillis()
         return listOf(

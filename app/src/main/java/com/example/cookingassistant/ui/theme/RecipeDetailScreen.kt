@@ -43,10 +43,6 @@ import coil.compose.AsyncImage
 import com.example.cookingassistant.R
 import com.example.cookingassistant.model.Recipe
 
-/**
- * Detail screen showing full recipe information
- * Displays ingredients and step-by-step instructions
- */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun RecipeDetailScreen(
@@ -68,7 +64,6 @@ fun RecipeDetailScreen(
                     }
                 },
                 actions = {
-                    // Only show edit button for custom (user-created) recipes
                     if (recipe.isCustom) {
                         IconButton(onClick = { onEdit(recipe.id) }) {
                             Icon(
@@ -99,14 +94,12 @@ fun RecipeDetailScreen(
             )
         }
     ) { padding ->
-        // Scrollable column for recipe details
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Main photo (full width at top)
             if (recipe.mainPhotoUri != null) {
                 AsyncImage(
                     model = recipe.mainPhotoUri,
@@ -118,11 +111,9 @@ fun RecipeDetailScreen(
                 )
             }
 
-            // Content with padding
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                // Description
                 Text(
                     text = recipe.description,
                     style = MaterialTheme.typography.bodyLarge,
@@ -131,16 +122,13 @@ fun RecipeDetailScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Recipe info row (difficulty, time, servings)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Difficulty badge
                     DifficultyBadge(difficulty = recipe.difficulty)
 
-                    // Prep time
                     if (recipe.prepTime > 0) {
                         InfoChip(
                             icon = "🔪",
@@ -148,13 +136,11 @@ fun RecipeDetailScreen(
                         )
                     }
 
-                    // Cooking time
                     InfoChip(
                         icon = "⏱️",
                         text = stringResource(R.string.minutes, recipe.cookingTime)
                     )
 
-                    // Servings
                     InfoChip(
                         icon = "🍽️",
                         text = "${recipe.servings}"
@@ -163,7 +149,6 @@ fun RecipeDetailScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Categories
                 if (recipe.categories.isNotEmpty()) {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -181,7 +166,6 @@ fun RecipeDetailScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-            // Ingredients section
             Text(
                 text = stringResource(R.string.ingredients),
                 style = MaterialTheme.typography.headlineSmall,
@@ -191,7 +175,6 @@ fun RecipeDetailScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // List all ingredients
             recipe.ingredients.forEachIndexed { index, ingredient ->
                 Row(
                     modifier = Modifier
@@ -220,7 +203,6 @@ fun RecipeDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Instructions section
             Text(
                 text = stringResource(R.string.instructions),
                 style = MaterialTheme.typography.headlineSmall,
@@ -230,7 +212,6 @@ fun RecipeDetailScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // List all cooking steps
             recipe.steps.forEach { step ->
                 Card(
                     modifier = Modifier
@@ -245,7 +226,6 @@ fun RecipeDetailScreen(
                             .fillMaxWidth()
                             .padding(12.dp)
                     ) {
-                        // Step number
                         Surface(
                             color = MaterialTheme.colorScheme.primary,
                             shape = MaterialTheme.shapes.small
@@ -261,7 +241,6 @@ fun RecipeDetailScreen(
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        // Step instruction
                         Text(
                             text = step.instruction,
                             style = MaterialTheme.typography.bodyMedium,
@@ -271,16 +250,12 @@ fun RecipeDetailScreen(
                 }
             }
 
-                // Bottom spacing
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
-/**
- * Displays an info chip with icon and text
- */
 @Composable
 fun InfoChip(icon: String, text: String) {
     Surface(

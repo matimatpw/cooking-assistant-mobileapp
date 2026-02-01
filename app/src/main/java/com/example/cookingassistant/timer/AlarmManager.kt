@@ -18,13 +18,6 @@ import com.example.cookingassistant.R
 import com.example.cookingassistant.model.TimerState
 import com.example.cookingassistant.voice.TextToSpeechManager
 
-/**
- * Manages alarm notifications when timer finishes
- * Triggers three types of alarms:
- * 1. TTS announcement
- * 2. Device vibration
- * 3. Alarm sound
- */
 class AlarmManager(private val context: Context) {
 
     companion object {
@@ -33,7 +26,6 @@ class AlarmManager(private val context: Context) {
         private const val ALARM_CHANNEL_ID = "timer_alarm_channel"
         private const val ALARM_CHANNEL_NAME = "Timer Alarms"
 
-        // Vibration pattern: wait-vibrate-wait-vibrate (in milliseconds)
         private val VIBRATION_PATTERN = longArrayOf(0, 500, 200, 500, 200, 500)
     }
 
@@ -55,28 +47,16 @@ class AlarmManager(private val context: Context) {
         ttsManager.initialize()
     }
 
-    /**
-     * Trigger all alarm actions when timer finishes
-     * 1. Vibrate device
-     * 2. Play alarm sound
-     * 3. Show notification
-     */
     fun triggerTimerAlarm(timer: TimerState) {
         Log.d(TAG, "Triggering alarm for timer: ${timer.timerId} (step ${timer.stepIndex})")
 
-        // 1. Vibrate device
         vibrateDevice()
 
-        // 2. Play alarm sound
         alarmPlayer.playAlarm()
 
-        // 3. Show notification
         showAlarmNotification(timer)
     }
 
-    /**
-     * Vibrate device with pattern
-     */
     private fun vibrateDevice() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(
@@ -89,13 +69,9 @@ class AlarmManager(private val context: Context) {
         Log.d(TAG, "Device vibrated")
     }
 
-    /**
-     * Show notification for timer alarm
-     */
     private fun showAlarmNotification(timer: TimerState) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            // Pass data to navigate to cooking mode at the correct step
             putExtra("navigate_to_cooking", true)
             putExtra("recipe_id", timer.recipeId)
             putExtra("step_index", timer.stepIndex)
@@ -107,7 +83,6 @@ class AlarmManager(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Dismiss action
         val dismissIntent = Intent(context, AlarmDismissReceiver::class.java).apply {
             putExtra("timer_id", timer.timerId)
             putExtra("notification_id", ALARM_NOTIFICATION_ID_BASE + timer.stepIndex)
@@ -137,9 +112,6 @@ class AlarmManager(private val context: Context) {
         Log.d(TAG, "Alarm notification shown for step ${timer.stepIndex}")
     }
 
-    /**
-     * Create notification channel for alarms
-     */
     private fun createAlarmNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -164,32 +136,19 @@ class AlarmManager(private val context: Context) {
         }
     }
 
-    /**
-     * Cancel all alarm notifications
-     * Used when exiting cooking mode to ensure no orphaned notifications
-     * @param stepIndices List of step indices that had timers
-     */
     fun cancelAllAlarmNotifications(stepIndices: List<Int>) {
         stepIndices.forEach { stepIndex ->
             notificationManager.cancel(ALARM_NOTIFICATION_ID_BASE + stepIndex)
             Log.d(TAG, "Cancelled alarm notification for step $stepIndex")
         }
-        // Also stop any playing alarm sound
         alarmPlayer.stop()
         Log.d(TAG, "Cancelled all alarm notifications and stopped alarm sound")
     }
 
-    /**
-     * Stop alarm sound immediately
-     * Used when user exits cooking mode
-     */
     fun stopAlarmSound() {
         alarmPlayer.stop()
     }
 
-    /**
-     * Clean up resources
-     */
     fun cleanup() {
         ttsManager.destroy()
         alarmPlayer.stop()

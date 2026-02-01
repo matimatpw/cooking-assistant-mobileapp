@@ -30,16 +30,13 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    // Track current intent for deep link navigation
     private var currentIntent by mutableStateOf<Intent?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Set initial intent for deep link handling
         currentIntent = intent
 
-        // Install bundled recipes on app startup (runs only on first launch)
         lifecycleScope.launch {
             val installer = BundledRecipesInstaller(applicationContext)
             installer.installBundledRecipesIfNeeded()
@@ -50,8 +47,6 @@ class MainActivity : ComponentActivity() {
             CookingAssistantTheme {
                 val navController = rememberNavController()
 
-                // Create data source instances and repository
-                // In the future, replace MockRemoteDataSource with real API client
                 val repository = remember {
                     CachedRecipeRepository(
                         localDataSource = FileRecipeRepository(applicationContext),
@@ -59,20 +54,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Handle deep links from widget and timer notifications
                 LaunchedEffect(currentIntent) {
                     currentIntent?.let { intent ->
-                        // Check if this is a navigation from timer notification
                         if (intent.getBooleanExtra("navigate_to_cooking", false)) {
                             val recipeId = intent.getStringExtra("recipe_id") ?: ""
                             val stepIndex = intent.getIntExtra("step_index", 0)
                             if (recipeId.isNotEmpty()) {
-                                // Create deep link URI for cooking step
                                 val deepLinkUri = Uri.parse("cookingassistant://cooking_step/$recipeId?stepIndex=$stepIndex")
                                 navController.handleDeepLink(Intent(Intent.ACTION_VIEW, deepLinkUri))
                             }
                         } else {
-                            // Handle regular deep links from widget
                             intent.data?.let { uri ->
                                 navController.handleDeepLink(Intent(Intent.ACTION_VIEW, uri))
                             }
@@ -84,7 +75,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Set up navigation graph with repository and context
                     CookingAssistantNavigation(
                         navController = navController,
                         repository = repository,
@@ -97,7 +87,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Update both the activity intent and our state to trigger navigation
         setIntent(intent)
         currentIntent = intent
     }

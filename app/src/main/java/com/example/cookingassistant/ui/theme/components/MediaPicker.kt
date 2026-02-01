@@ -24,10 +24,6 @@ import coil.compose.AsyncImage
 import com.example.cookingassistant.R
 import com.example.cookingassistant.utils.rememberPhotoPickerLaunchers
 
-/**
- * Media picker component for selecting photos from camera or gallery
- * Handles permissions and launches appropriate pickers
- */
 @Composable
 fun MediaPickerButton(
     label: String,
@@ -38,12 +34,10 @@ fun MediaPickerButton(
     var showDialog by remember { mutableStateOf(false) }
     var showPermissionRationale by remember { mutableStateOf(false) }
 
-    // Photo picker launchers
     val photoLaunchers = rememberPhotoPickerLaunchers(
         onPhotoSelected = onMediaSelected
     )
 
-    // Permission launchers
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -74,7 +68,6 @@ fun MediaPickerButton(
         )
 
         if (currentMediaUri != null) {
-            // Show current media
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -113,7 +106,6 @@ fun MediaPickerButton(
                 }
             }
         } else {
-            // Show picker button
             OutlinedButton(
                 onClick = { showDialog = true },
                 modifier = Modifier.fillMaxWidth()
@@ -128,7 +120,6 @@ fun MediaPickerButton(
         }
     }
 
-    // Photo source selection dialog
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -142,7 +133,6 @@ fun MediaPickerButton(
                         style = MaterialTheme.typography.bodyMedium
                     )
 
-                    // Camera option
                     OutlinedCard(
                         onClick = {
                             showDialog = false
@@ -176,11 +166,9 @@ fun MediaPickerButton(
                         }
                     }
 
-                    // Gallery option
                     OutlinedCard(
                         onClick = {
                             showDialog = false
-                            // Request appropriate permission based on Android version
                             val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 Manifest.permission.READ_MEDIA_IMAGES
                             } else {
@@ -225,7 +213,6 @@ fun MediaPickerButton(
         )
     }
 
-    // Permission rationale dialog
     if (showPermissionRationale) {
         AlertDialog(
             onDismissRequest = { showPermissionRationale = false },
@@ -242,10 +229,6 @@ fun MediaPickerButton(
     }
 }
 
-/**
- * Simplified media picker info component
- * Shows information about media selection (to be implemented)
- */
 @Composable
 fun MediaPickerPlaceholder(
     modifier: Modifier = Modifier

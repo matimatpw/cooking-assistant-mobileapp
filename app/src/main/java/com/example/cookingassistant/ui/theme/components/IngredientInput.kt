@@ -15,10 +15,6 @@ import androidx.compose.ui.unit.dp
 import com.example.cookingassistant.R
 import com.example.cookingassistant.model.Ingredient
 
-/**
- * Dynamic ingredient input list component
- * Allows adding, editing, and removing ingredients
- */
 @Composable
 fun IngredientInputList(
     ingredients: List<Ingredient>,
@@ -29,7 +25,6 @@ fun IngredientInputList(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header with title and add button
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -57,7 +52,6 @@ fun IngredientInputList(
             }
         }
 
-        // List of ingredient inputs
         if (ingredients.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -83,7 +77,6 @@ fun IngredientInputList(
                         onIngredientsChange(updatedList)
                     },
                     onRemove = {
-                        // Only allow removal if there's more than 1 ingredient
                         if (ingredients.size > 1) {
                             onIngredientsChange(ingredients.filterIndexed { i, _ -> i != index })
                         }
@@ -116,7 +109,6 @@ fun IngredientInputItem(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Header with index and delete button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -145,7 +137,6 @@ fun IngredientInputItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Name field (required)
             OutlinedTextField(
                 value = ingredient.name,
                 onValueChange = { onIngredientChange(ingredient.copy(name = it)) },
@@ -158,7 +149,6 @@ fun IngredientInputItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Quantity field (required)
             OutlinedTextField(
                 value = ingredient.quantity,
                 onValueChange = { onIngredientChange(ingredient.copy(quantity = it)) },
@@ -171,7 +161,6 @@ fun IngredientInputItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Notes field (optional)
             OutlinedTextField(
                 value = ingredient.notes ?: "",
                 onValueChange = {

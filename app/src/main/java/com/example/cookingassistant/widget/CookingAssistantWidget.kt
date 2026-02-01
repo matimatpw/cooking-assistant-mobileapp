@@ -13,10 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
-/**
- * Main Glance widget for Cooking Assistant
- * Displays quick actions: Last Recipe, Continue Cooking, Random Recipe
- */
 class CookingAssistantWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -30,14 +26,10 @@ class CookingAssistantWidget : GlanceAppWidget() {
         }
     }
 
-    /**
-     * Load widget state from preferences and repository
-     */
     private suspend fun loadWidgetState(context: Context): WidgetState = withContext(Dispatchers.IO) {
         val widgetPreferences = WidgetPreferences(context)
         val repository = createRepository(context)
 
-        // Load all recipes
         val allRecipes = repository.getAllRecipes().getOrNull() ?: emptyList()
         Log.d("CookingWidget", "Loaded ${allRecipes.size} recipes")
 
@@ -50,7 +42,6 @@ class CookingAssistantWidget : GlanceAppWidget() {
             )
         }
 
-        // Load last viewed recipe
         val lastViewedRecipeId = widgetPreferences.getLastViewedRecipe()
         Log.d("CookingWidget", "Last viewed recipe ID from prefs: $lastViewedRecipeId")
         val lastRecipe = lastViewedRecipeId?.let { recipeId ->
@@ -62,17 +53,14 @@ class CookingAssistantWidget : GlanceAppWidget() {
         }
         Log.d("CookingWidget", "Last recipe: ${lastRecipe?.name} (id: ${lastRecipe?.id})")
 
-        // Load active timer recipe (takes priority over cooking session)
         val activeTimerRecipeId = widgetPreferences.getActiveTimerRecipe()
         val activeTimerRecipe = activeTimerRecipeId?.let { id ->
             allRecipes.find { it.id == id }
         }
         Log.d("CookingWidget", "Active timer recipe: $activeTimerRecipeId (found: ${activeTimerRecipe?.name})")
 
-        // Load cooking session as fallback
         val cookingSession = widgetPreferences.getActiveCookingSession()
         val cookingRecipe = if (activeTimerRecipe != null) {
-            // Use active timer recipe for cooking session display
             activeTimerRecipe
         } else {
             cookingSession?.let { session ->
@@ -81,11 +69,9 @@ class CookingAssistantWidget : GlanceAppWidget() {
         }
         Log.d("CookingWidget", "Cooking session: ${cookingSession?.recipeId}, using recipe: ${cookingRecipe?.name}")
 
-        // Load or select random recipe
         val randomRecipe = selectRandomRecipe(widgetPreferences, allRecipes)
         Log.d("CookingWidget", "Random recipe: ${randomRecipe?.name}")
 
-        // Create cooking session for widget state - prioritize active timer recipe
         val effectiveCookingSession = when {
             activeTimerRecipe != null -> CookingSession(activeTimerRecipe.id, 0, System.currentTimeMillis())
             cookingRecipe != null && cookingSession != null -> cookingSession
@@ -104,27 +90,17 @@ class CookingAssistantWidget : GlanceAppWidget() {
         return@withContext state
     }
 
-    /**
-     * Select random recipe for display in widget
-     * Note: The actual random selection happens in MainActivity when clicked
-     * This is just for showing a recipe name/preview in the widget
-     */
     private fun selectRandomRecipe(
         widgetPreferences: WidgetPreferences,
         allRecipes: List<Recipe>
     ): Recipe? {
         if (allRecipes.isEmpty()) return null
 
-        // Just pick any recipe for display (we just need to show SOMETHING)
-        // The actual "random" selection happens when user clicks the button
         val randomRecipe = allRecipes.randomOrNull(Random.Default)
         Log.d("CookingWidget", "Selected random recipe for display: ${randomRecipe?.name}")
         return randomRecipe
     }
 
-    /**
-     * Create repository instance for loading recipes
-     */
     private fun createRepository(context: Context): CachedRecipeRepository {
         val localDataSource = FileRecipeRepository(context)
         val remoteDataSource = MockRemoteDataSource()
@@ -132,10 +108,6 @@ class CookingAssistantWidget : GlanceAppWidget() {
     }
 }
 
-/**
- * Widget state data class
- * Contains all data needed to render the widget
- */
 data class WidgetState(
     val lastRecipe: Recipe?,
     val cookingSession: CookingSession?,

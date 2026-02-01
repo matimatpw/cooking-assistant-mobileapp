@@ -16,10 +16,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * Unit tests for RecipeViewModel
- * Demonstrates how to test step navigation and voice command processing without running the app
- */
 @RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecipeViewModelTest {

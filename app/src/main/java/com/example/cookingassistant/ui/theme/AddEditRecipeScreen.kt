@@ -25,10 +25,6 @@ import com.example.cookingassistant.ui.theme.components.StepInputList
 import com.example.cookingassistant.viewmodel.RecipeViewModel
 import java.util.*
 
-/**
- * Add/Edit Recipe Screen
- * Allows creating new recipes or editing existing ones
- */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddEditRecipeScreen(
@@ -37,16 +33,13 @@ fun AddEditRecipeScreen(
     onSave: () -> Unit,
     onCancel: () -> Unit
 ) {
-    // Load existing recipe if editing
     val existingRecipe = remember(recipeId) {
         recipeId?.let { viewModel.getRecipeById(it) }
     }
 
-    // Dialog state for draft recovery
     var showDraftDialog by remember { mutableStateOf(false) }
     var loadedDraft by remember { mutableStateOf<RecipeDraft?>(null) }
 
-    // Check for existing draft when screen opens (only for new recipes)
     LaunchedEffect(Unit) {
         if (recipeId == null && viewModel.hasDraft()) {
             loadedDraft = viewModel.loadDraft()
@@ -54,7 +47,6 @@ fun AddEditRecipeScreen(
         }
     }
 
-    // Form state
     var name by remember { mutableStateOf(existingRecipe?.name ?: "") }
     var description by remember { mutableStateOf(existingRecipe?.description ?: "") }
     var mainPhotoUri by remember { mutableStateOf(existingRecipe?.mainPhotoUri) }
@@ -81,7 +73,6 @@ fun AddEditRecipeScreen(
         )
     }
 
-    // Function to load draft into form
     fun loadDraftIntoForm(draft: RecipeDraft) {
         name = draft.name
         description = draft.description
@@ -96,7 +87,6 @@ fun AddEditRecipeScreen(
         steps = draft.steps
     }
 
-    // Validation state
     var showValidationErrors by remember { mutableStateOf(false) }
     val isValid = remember(name, description, cookingTime, servings, ingredients, steps) {
         name.isNotBlank() &&
@@ -107,16 +97,13 @@ fun AddEditRecipeScreen(
                 steps.all { it.instruction.isNotBlank() }
     }
 
-    // Dialog state for unsaved changes
     var showExitDialog by remember { mutableStateOf(false) }
 
-    // Check if there are unsaved changes
     val hasUnsavedChanges = remember(
         name, description, mainPhotoUri, prepTime, cookingTime, servings,
         difficulty, selectedCategories, tags, ingredients, steps, existingRecipe
     ) {
         if (existingRecipe != null) {
-            // When editing: check if anything changed from original
             name != existingRecipe.name ||
             description != existingRecipe.description ||
             mainPhotoUri != existingRecipe.mainPhotoUri ||
@@ -129,7 +116,6 @@ fun AddEditRecipeScreen(
             ingredients != existingRecipe.ingredients ||
             steps != existingRecipe.steps
         } else {
-            // When adding: check if any field has content
             name.isNotBlank() ||
             description.isNotBlank() ||
             mainPhotoUri != null ||
@@ -146,7 +132,6 @@ fun AddEditRecipeScreen(
         }
     }
 
-    // Handle back button press
     BackHandler(enabled = true) {
         if (hasUnsavedChanges) {
             showExitDialog = true
@@ -201,7 +186,6 @@ fun AddEditRecipeScreen(
                             steps = steps,
                             viewModel = viewModel
                         )
-                        // Clear draft when recipe is actually saved
                         viewModel.clearDraft()
                         onSave()
                     } else {
@@ -231,7 +215,6 @@ fun AddEditRecipeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Validation error banner
             if (showValidationErrors && !isValid) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -247,14 +230,12 @@ fun AddEditRecipeScreen(
                 }
             }
 
-            // Basic Information Section
             Text(
                 text = stringResource(R.string.basic_information),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
 
-            // Recipe name
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -266,7 +247,6 @@ fun AddEditRecipeScreen(
                 shape = RoundedCornerShape(8.dp)
             )
 
-            // Description
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
@@ -279,7 +259,6 @@ fun AddEditRecipeScreen(
                 shape = RoundedCornerShape(8.dp)
             )
 
-            // Main photo picker
             MediaPickerButton(
                 label = stringResource(R.string.main_photo),
                 currentMediaUri = mainPhotoUri,
@@ -288,19 +267,16 @@ fun AddEditRecipeScreen(
 
             HorizontalDivider()
 
-            // Recipe Details Section
             Text(
                 text = stringResource(R.string.recipe_details),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
 
-            // Time and servings row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Prep time
                 OutlinedTextField(
                     value = prepTime,
                     onValueChange = { prepTime = it },
@@ -312,7 +288,6 @@ fun AddEditRecipeScreen(
                     shape = RoundedCornerShape(8.dp)
                 )
 
-                // Cooking time
                 OutlinedTextField(
                     value = cookingTime,
                     onValueChange = { cookingTime = it },
@@ -325,7 +300,6 @@ fun AddEditRecipeScreen(
                     shape = RoundedCornerShape(8.dp)
                 )
 
-                // Servings
                 OutlinedTextField(
                     value = servings,
                     onValueChange = { servings = it },
@@ -339,7 +313,6 @@ fun AddEditRecipeScreen(
                 )
             }
 
-            // Difficulty selector
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -370,7 +343,6 @@ fun AddEditRecipeScreen(
 
             HorizontalDivider()
 
-            // Categories Section
             Text(
                 text = stringResource(R.string.categories),
                 style = MaterialTheme.typography.titleLarge,
@@ -382,7 +354,6 @@ fun AddEditRecipeScreen(
                 onCategoriesChange = { selectedCategories = it }
             )
 
-            // Tags
             OutlinedTextField(
                 value = tags,
                 onValueChange = { tags = it },
@@ -395,7 +366,6 @@ fun AddEditRecipeScreen(
 
             HorizontalDivider()
 
-            // Ingredients Section
             IngredientInputList(
                 ingredients = ingredients,
                 onIngredientsChange = { ingredients = it }
@@ -403,18 +373,15 @@ fun AddEditRecipeScreen(
 
             HorizontalDivider()
 
-            // Steps Section
             StepInputList(
                 steps = steps,
                 onStepsChange = { steps = it }
             )
 
-            // Bottom spacing for FAB
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
 
-    // Exit confirmation dialog
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
@@ -428,10 +395,7 @@ fun AddEditRecipeScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // When editing existing recipe: only show discard and stay options
-                    // When creating new recipe: show save draft, discard, and stay options
                     if (recipeId != null) {
-                        // Option 1: Discard and Exit
                         Button(
                             onClick = {
                                 showExitDialog = false
@@ -442,7 +406,6 @@ fun AddEditRecipeScreen(
                             Text(stringResource(R.string.discard_and_exit))
                         }
 
-                        // Option 2: Stay
                         OutlinedButton(
                             onClick = {
                                 showExitDialog = false
@@ -452,11 +415,9 @@ fun AddEditRecipeScreen(
                             Text(stringResource(R.string.stay_and_continue))
                         }
                     } else {
-                        // Option 1: Save Draft and Exit (only for new recipes)
                         Button(
                             onClick = {
                                 showExitDialog = false
-                                // Save as draft
                                 val draft = RecipeDraft(
                                     recipeId = recipeId,
                                     name = name,
@@ -479,7 +440,6 @@ fun AddEditRecipeScreen(
                             Text(stringResource(R.string.save_draft_and_exit))
                         }
 
-                        // Option 2: Discard and Exit
                         OutlinedButton(
                             onClick = {
                                 showExitDialog = false
@@ -491,7 +451,6 @@ fun AddEditRecipeScreen(
                             Text(stringResource(R.string.discard_and_exit))
                         }
 
-                        // Option 3: Stay
                         TextButton(
                             onClick = {
                                 showExitDialog = false
@@ -507,11 +466,9 @@ fun AddEditRecipeScreen(
         )
     }
 
-    // Draft recovery dialog
     if (showDraftDialog && loadedDraft != null) {
         AlertDialog(
             onDismissRequest = {
-                // User must choose an option
             },
             title = {
                 Text(text = stringResource(R.string.draft_found_title))
@@ -523,7 +480,6 @@ fun AddEditRecipeScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Option 1: Continue Draft
                     Button(
                         onClick = {
                             loadDraftIntoForm(loadedDraft!!)
@@ -534,7 +490,6 @@ fun AddEditRecipeScreen(
                         Text(stringResource(R.string.continue_draft))
                     }
 
-                    // Option 2: Start Fresh
                     OutlinedButton(
                         onClick = {
                             viewModel.clearDraft()
@@ -551,9 +506,6 @@ fun AddEditRecipeScreen(
     }
 }
 
-/**
- * Category selector with chips
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CategorySelector(
@@ -563,7 +515,6 @@ fun CategorySelector(
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Group categories by type with localized names
         val categoryGroups = listOf(
             stringResource(R.string.category_meal_type) to listOf(
                 RecipeCategory.BREAKFAST,
@@ -632,10 +583,6 @@ fun CategorySelector(
         }
     }
 }
-
-/**
- * Gets localized label for a recipe category
- */
 @Composable
 private fun getCategoryLabel(category: RecipeCategory): String {
     return when (category) {
@@ -661,10 +608,6 @@ private fun getCategoryLabel(category: RecipeCategory): String {
         RecipeCategory.HOLIDAY -> stringResource(R.string.category_holiday)
     }
 }
-
-/**
- * Save recipe to repository
- */
 private fun saveRecipe(
     recipeId: String?,
     name: String,
@@ -701,12 +644,9 @@ private fun saveRecipe(
         isCustom = true
     )
 
-    // Save via ViewModel (which will use repository)
     if (recipeId == null) {
-        // New recipe
         viewModel.saveRecipe(recipe)
     } else {
-        // Update existing recipe
         viewModel.updateRecipe(recipe)
     }
 }

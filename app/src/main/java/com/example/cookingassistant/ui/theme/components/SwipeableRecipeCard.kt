@@ -28,9 +28,6 @@ import androidx.compose.foundation.background
 
 //TODO add photos to Recipe dto
 //TODO superlikes prio in sorted likedRecipes
-/**
- * Swipeable recipe card component
- */
 @Composable
 fun SwipeableRecipeCard(
     recipe: Recipe,
@@ -45,7 +42,6 @@ fun SwipeableRecipeCard(
     val animatedOffsetX = remember { Animatable(0f) }
     val animatedOffsetY = remember { Animatable(0f) }
 
-    // Swipe threshold
     val swipeThreshold = 300f
 
     Card(
@@ -61,7 +57,6 @@ fun SwipeableRecipeCard(
                 detectDragGestures(
                     onDragEnd = {
                         scope.launch {
-                            // Determine swipe type
                             val swipeType = when {
                                 offsetX > swipeThreshold -> SwipeType.LIKE
                                 offsetX < -swipeThreshold -> SwipeType.DISLIKE
@@ -71,7 +66,6 @@ fun SwipeableRecipeCard(
                             }
 
                             if (swipeType != null) {
-                                // Animate card off screen
                                 val targetX = when (swipeType) {
                                     SwipeType.LIKE -> 1000f
                                     SwipeType.DISLIKE -> -1000f
@@ -94,7 +88,6 @@ fun SwipeableRecipeCard(
 
                                 onSwipe(swipeType)
                             } else {
-                                // Snap back to center
                                 animatedOffsetX.animateTo(0f, animationSpec = tween(200))
                                 animatedOffsetY.animateTo(0f, animationSpec = tween(200))
                             }
@@ -113,7 +106,6 @@ fun SwipeableRecipeCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Recipe image
             AsyncImage(
                 model = recipe.mainPhotoUri,
                 contentDescription = recipe.name,
@@ -121,7 +113,6 @@ fun SwipeableRecipeCard(
                 contentScale = ContentScale.Crop
             )
 
-            // Gradient overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -133,10 +124,8 @@ fun SwipeableRecipeCard(
                     )
             )
 
-            // Swipe indicators
             SwipeIndicators(offsetX, offsetY, swipeThreshold)
 
-            // Recipe info
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -175,7 +164,6 @@ fun SwipeableRecipeCard(
 @Composable
 fun SwipeIndicators(offsetX: Float, offsetY: Float, threshold: Float) {
     Box(modifier = Modifier.fillMaxSize()) {
-        // Like indicator (right)
         if (offsetX > 50) {
             Surface(
                 modifier = Modifier
@@ -194,7 +182,6 @@ fun SwipeIndicators(offsetX: Float, offsetY: Float, threshold: Float) {
             }
         }
 
-        // Dislike indicator (left)
         if (offsetX < -50) {
             Surface(
                 modifier = Modifier
@@ -213,7 +200,6 @@ fun SwipeIndicators(offsetX: Float, offsetY: Float, threshold: Float) {
             }
         }
 
-        // Super like indicator (up)
         if (offsetY < -50) {
             Surface(
                 modifier = Modifier
@@ -242,7 +228,6 @@ fun SwipeIndicators(offsetX: Float, offsetY: Float, threshold: Float) {
             }
         }
 
-        // Skip indicator (down)
         if (offsetY > 50) {
             Surface(
                 modifier = Modifier

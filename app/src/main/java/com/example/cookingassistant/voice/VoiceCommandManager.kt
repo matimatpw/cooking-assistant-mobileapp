@@ -13,20 +13,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 
-/**
- * Manages voice recognition and command processing
- * Handles Android SpeechRecognizer lifecycle and command interpretation
- * Supports multi-language voice commands via VoiceCommandTranslator
- */
 class VoiceCommandManager(private val context: Context) {
 
     private val tag = "VoiceCommandManager"
 
     private var speechRecognizer: SpeechRecognizer? = null
 
-    /**
-     * Create recognizer intent with app's selected language
-     */
     private fun createRecognizerIntent(): Intent {
         val appLanguage = LocaleManager.getCurrentLanguage(context)
         val locale = Locale.forLanguageTag(appLanguage)
@@ -46,7 +38,6 @@ class VoiceCommandManager(private val context: Context) {
     private val _recognizedText = MutableStateFlow<String?>(null)
     val recognizedText: StateFlow<String?> = _recognizedText.asStateFlow()
 
-    // Debug: accumulate all recognized text for testing
     private val _allRecognizedText = MutableStateFlow<List<String>>(emptyList())
     val allRecognizedText: StateFlow<List<String>> = _allRecognizedText.asStateFlow()
 
@@ -55,9 +46,6 @@ class VoiceCommandManager(private val context: Context) {
     private var autoRestartEnabled = false
     private var manuallyPaused = false
 
-    /**
-     * Initialize speech recognizer
-     */
     fun initialize() {
         if (speechRecognizer == null) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
@@ -67,20 +55,11 @@ class VoiceCommandManager(private val context: Context) {
         }
     }
 
-    /**
-     * Clear accumulated recognized text (for debugging)
-     */
     fun clearRecognizedTextHistory() {
         _allRecognizedText.value = emptyList()
         _recognizedText.value = null
     }
 
-    /**
-     * Start listening for voice commands
-     * @param onCommand Callback invoked when a command is recognized
-     * @param enableAutoRestart If true, automatically restart listening after each command
-     * @param onAutoRestart Callback invoked before auto-restarting (for UI updates)
-     */
     fun startListening(
         onCommand: (VoiceCommand) -> Unit,
         enableAutoRestart: Boolean = false,
@@ -103,10 +82,6 @@ class VoiceCommandManager(private val context: Context) {
         Log.d(tag, "Started listening for voice commands (auto-restart: $enableAutoRestart, language: ${LocaleManager.getCurrentLanguage(context)})")
     }
 
-    /**
-     * Stop listening for voice commands
-     * @param isPause If true, marks as manually paused (prevents auto-restart)
-     */
     fun stopListening(isPause: Boolean = false) {
         speechRecognizer?.stopListening()
         _isListening.value = false
@@ -118,9 +93,6 @@ class VoiceCommandManager(private val context: Context) {
         }
     }
 
-    /**
-     * Cancel voice recognition
-     */
     fun cancel() {
         speechRecognizer?.cancel()
         _isListening.value = false
@@ -128,9 +100,6 @@ class VoiceCommandManager(private val context: Context) {
         Log.d(tag, "Voice recognition cancelled")
     }
 
-    /**
-     * Resume listening after manual pause
-     */
     fun resume() {
         if (manuallyPaused) {
             manuallyPaused = false
@@ -144,14 +113,8 @@ class VoiceCommandManager(private val context: Context) {
         }
     }
 
-    /**
-     * Check if manually paused
-     */
     fun isPaused(): Boolean = manuallyPaused
 
-    /**
-     * Clean up resources
-     */
     fun destroy() {
         speechRecognizer?.destroy()
         speechRecognizer = null
@@ -159,9 +122,6 @@ class VoiceCommandManager(private val context: Context) {
         Log.d(tag, "VoiceCommandManager destroyed")
     }
 
-    /**
-     * Create recognition listener for handling speech recognition events
-     */
     private fun createRecognitionListener() = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
             Log.d(tag, "Ready for speech")
@@ -172,11 +132,9 @@ class VoiceCommandManager(private val context: Context) {
         }
 
         override fun onRmsChanged(rmsdB: Float) {
-            // Audio level changed - could be used for visual feedback
         }
 
         override fun onBufferReceived(buffer: ByteArray?) {
-            // Audio buffer received
         }
 
         override fun onEndOfSpeech() {
@@ -199,9 +157,7 @@ class VoiceCommandManager(private val context: Context) {
             }
             Log.e(tag, "Recognition error: $errorMessage")
             _isListening.value = false
-            // Don't clear recognized text - keep it for debugging
 
-            // Auto-restart on timeout or no match (common non-critical errors)
             if (autoRestartEnabled && !manuallyPaused) {
                 when (error) {
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
@@ -220,14 +176,11 @@ class VoiceCommandManager(private val context: Context) {
                 Log.d(tag, "Recognized: $recognizedText")
                 _recognizedText.value = recognizedText
 
-                // Debug: accumulate all recognized text
                 _allRecognizedText.value = _allRecognizedText.value + recognizedText
 
-                // Process the command
                 val command = parseCommand(recognizedText)
                 command?.let { onCommandCallback?.invoke(it) }
 
-                // Auto-restart if enabled and not manually paused
                 if (autoRestartEnabled && !manuallyPaused) {
                     Log.d(tag, "Auto-restarting listening after command")
                     onAutoRestartCallback?.invoke()
@@ -246,15 +199,9 @@ class VoiceCommandManager(private val context: Context) {
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) {
-            // Reserved for future use
         }
     }
 
-    /**
-     * Parse recognized text into a VoiceCommand using localized translator
-     * @param text The recognized speech text
-     * @return VoiceCommand if recognized, null otherwise
-     */
     private fun parseCommand(text: String): VoiceCommand? {
         val command = commandTranslator.translate(text)
         if (command == null) {
@@ -263,33 +210,23 @@ class VoiceCommandManager(private val context: Context) {
         return command
     }
 
-    /**
-     * Get localized command hints for display
-     * @return Map of VoiceCommand to localized example
-     */
     fun getCommandHints(): Map<VoiceCommand, String> {
         return commandTranslator.getCommandHints()
     }
 }
 
-/**
- * Enum representing supported voice commands
- */
 enum class VoiceCommand {
-    // Navigation commands
     NEXT,           // Go to next step
     PREVIOUS,       // Go to previous step
     REPEAT,         // Repeat current step
     START,          // Go to first step
 
-    // Text-to-Speech commands
     INGREDIENTS,    // Read step ingredients
     DESCRIPTION,    // Read step instruction
     TIME,           // Read step duration
     TIPS,           // Read step tips
     STEP_NUMBER,    // Read current step number
 
-    // Timer commands
     START_TIMER,    // Start timer for current step
     PAUSE_TIMER,    // Pause active timer
     RESUME_TIMER,   // Resume paused timer

@@ -21,9 +21,6 @@ import com.example.cookingassistant.repository.SwipeRepository
 import com.example.cookingassistant.viewmodel.RecipeViewModel
 import kotlinx.coroutines.launch
 
-/**
- * Screen displaying all liked recipes from swipe history
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LikedRecipesScreen(
@@ -36,7 +33,6 @@ fun LikedRecipesScreen(
     var likedRecipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Load liked recipes
     LaunchedEffect(Unit) {
         scope.launch {
             isLoading = true
@@ -112,7 +108,6 @@ fun LikedRecipeCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(modifier = Modifier.fillMaxSize()) {
-            // Recipe Image
             AsyncImage(
                 model = recipe.mainPhotoUri,
                 contentDescription = recipe.name,
@@ -122,7 +117,6 @@ fun LikedRecipeCard(
                 contentScale = ContentScale.Crop
             )
 
-            // Recipe Info
             Column(
                 modifier = Modifier
                     .fillMaxSize()

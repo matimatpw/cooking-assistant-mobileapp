@@ -8,10 +8,6 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 
-/**
- * Unit tests for VoiceCommandTranslator
- * Demonstrates how to test voice command parsing without running the app
- */
 class VoiceCommandTranslatorTest {
 
     private lateinit var context: Context

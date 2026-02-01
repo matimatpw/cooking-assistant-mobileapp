@@ -10,13 +10,6 @@ import androidx.core.content.ContextCompat
 import com.example.cookingassistant.model.TimerState
 import com.example.cookingassistant.viewmodel.RecipeViewModel
 
-/**
- * Implementation of TimerServiceBridge
- * Manages communication between ViewModel and TimerService
- *
- * This bridge pattern allows the ViewModel to remain testable and
- * independent of Android framework components.
- */
 class TimerServiceBridgeImpl(
     private val context: Context
 ) : TimerServiceBridge {
@@ -27,11 +20,6 @@ class TimerServiceBridgeImpl(
 
     private var serviceConnection: ServiceConnection? = null
     private var boundService: TimerService? = null
-
-    /**
-     * Bind to TimerService and set ViewModel reference
-     * @param viewModel The ViewModel to connect to the service
-     */
     fun bindService(viewModel: RecipeViewModel) {
         val intent = Intent(context, TimerService::class.java)
 
@@ -53,9 +41,6 @@ class TimerServiceBridgeImpl(
         Log.d(TAG, "Binding to TimerService")
     }
 
-    /**
-     * Unbind from TimerService
-     */
     fun unbindService() {
         serviceConnection?.let {
             context.unbindService(it)

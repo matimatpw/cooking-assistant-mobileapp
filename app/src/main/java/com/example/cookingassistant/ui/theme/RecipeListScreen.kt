@@ -66,9 +66,6 @@ import com.example.cookingassistant.util.LocaleManager
 import com.example.cookingassistant.viewmodel.RecipeListState
 import com.example.cookingassistant.viewmodel.RecipeViewModel
 
-/**
- * Tab row for switching between Explore and My Recipes tabs and Swipe
- */
 @Composable
 fun RecipeListTabs(
     selectedTabIndex: Int,
@@ -99,10 +96,6 @@ fun RecipeListTabs(
     }
 }
 
-/**
- * Main screen displaying list of recipes
- * Observes ViewModel state and navigates to detail screen on item click
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeListScreen(
@@ -111,7 +104,6 @@ fun RecipeListScreen(
     onAddRecipe: () -> Unit = {},
     onNavigateToSwipe: () -> Unit = {}
 ) {
-    // Collect UI state from ViewModel - automatically updates when state changes
     val state by viewModel.state.collectAsState()
     val selectedTabIndex by viewModel.selectedTabIndex.collectAsState()
     val filters by viewModel.filters.collectAsState()
@@ -122,7 +114,6 @@ fun RecipeListScreen(
     LaunchedEffect(selectedTabIndex) {
         if (selectedTabIndex == 2) {
             onNavigateToSwipe()
-            // Reset tab to Explore after navigation starts
             viewModel.selectTab(0)
         }
     }
@@ -132,7 +123,6 @@ fun RecipeListScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.cooking_assistant)) },
                 actions = {
-                    // Filter button with badge if filters are active
                     IconButton(onClick = { showFilterSheet = true }) {
                         if (filters.hasActiveFilters()) {
                             androidx.compose.material3.Badge(
@@ -162,7 +152,6 @@ fun RecipeListScreen(
                         onLanguageSelected = { languageCode ->
                             showLanguageMenu = false
                             LocaleManager.setLanguage(context, languageCode)
-                            // Restart activity to apply language change
                             (context as? Activity)?.recreate()
                         }
                     )
@@ -190,16 +179,13 @@ fun RecipeListScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Tab row for switching between Explore and My Recipes
             RecipeListTabs(
                 selectedTabIndex = selectedTabIndex,
                 onTabSelected = { viewModel.selectTab(it) }
             )
 
-            // Handle different UI states
             when (val currentState = state) {
                 is RecipeListState.Loading -> {
-                // Show loading spinner on initial load
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -209,17 +195,14 @@ fun RecipeListScreen(
             }
 
             is RecipeListState.Success -> {
-                // Filter recipes based on selected tab
                 val displayedRecipes = viewModel.getRecipesForTab(selectedTabIndex, currentState.recipes)
 
-                // Show recipe list with pull-to-refresh
                 PullToRefreshBox(
                     isRefreshing = currentState.isRefreshing,
                     onRefresh = { viewModel.refreshRecipes() },
                     modifier = Modifier.fillMaxSize()
                 ) {
                     if (displayedRecipes.isEmpty()) {
-                        // Show tab-specific empty state with fillMaxSize to enable pull-to-refresh
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -243,7 +226,6 @@ fun RecipeListScreen(
                             }
                         }
                     } else {
-                        // Show recipe list
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -260,11 +242,9 @@ fun RecipeListScreen(
             }
 
             is RecipeListState.Error -> {
-                // Show error with cached recipes if available
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Error message at top
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.errorContainer
@@ -277,7 +257,6 @@ fun RecipeListScreen(
                         )
                     }
 
-                    // Show cached recipes if available
                     if (currentState.cachedRecipes.isNotEmpty()) {
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
@@ -307,7 +286,6 @@ fun RecipeListScreen(
             }
         }
 
-        // Show filter bottom sheet when requested
         if (showFilterSheet) {
             FilterBottomSheet(
                 currentFilters = filters,
@@ -321,10 +299,6 @@ fun RecipeListScreen(
     }
 }
 
-/**
- * Individual recipe item in the list
- * Displays recipe photo, name, description, categories, difficulty, and cooking time
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RecipeListItem(
@@ -342,7 +316,6 @@ fun RecipeListItem(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Main photo thumbnail
             if (recipe.mainPhotoUri != null) {
                 AsyncImage(
                     model = recipe.mainPhotoUri,
@@ -355,13 +328,11 @@ fun RecipeListItem(
                 Spacer(modifier = Modifier.width(12.dp))
             }
 
-            // Recipe details
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                // Recipe name with difficulty badge
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -376,13 +347,11 @@ fun RecipeListItem(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Difficulty badge
                     DifficultyBadge(difficulty = recipe.difficulty)
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Description preview
                 Text(
                     text = recipe.description,
                     style = MaterialTheme.typography.bodySmall,
@@ -393,7 +362,6 @@ fun RecipeListItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Time and servings info
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -410,7 +378,6 @@ fun RecipeListItem(
                     )
                 }
 
-                // Categories as chips
                 if (recipe.categories.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     FlowRow(
@@ -434,9 +401,6 @@ fun RecipeListItem(
     }
 }
 
-/**
- * Displays difficulty level as a colored badge
- */
 @Composable
 fun DifficultyBadge(difficulty: Difficulty) {
     val (color, textResId) = when (difficulty) {
@@ -459,9 +423,6 @@ fun DifficultyBadge(difficulty: Difficulty) {
     }
 }
 
-/**
- * Displays a category as a chip
- */
 @Composable
 fun CategoryChip(category: String) {
     val categoryResId = when (category.uppercase()) {
@@ -505,9 +466,6 @@ fun CategoryChip(category: String) {
     }
 }
 
-/**
- * Dropdown menu for language selection
- */
 @Composable
 fun LanguageDropdownMenu(
     expanded: Boolean,

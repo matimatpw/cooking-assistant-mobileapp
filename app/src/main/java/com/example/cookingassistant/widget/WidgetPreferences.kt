@@ -4,16 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.serialization.Serializable
 
-/**
- * Manages widget state persistence using SharedPreferences
- * Tracks last viewed recipe and active cooking session for widget display
- */
 class WidgetPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    /**
-     * Set the last viewed recipe ID for widget display
-     */
     fun setLastViewedRecipe(recipeId: String) {
         android.util.Log.d("WidgetPreferences", "Setting last viewed recipe: $recipeId")
         prefs.edit()
@@ -23,16 +16,10 @@ class WidgetPreferences(context: Context) {
         android.util.Log.d("WidgetPreferences", "Last viewed recipe saved successfully")
     }
 
-    /**
-     * Get the last viewed recipe ID, or null if none exists
-     */
     fun getLastViewedRecipe(): String? {
         return prefs.getString(KEY_LAST_VIEWED_RECIPE_ID, null)
     }
 
-    /**
-     * Set active cooking session (recipe ID and current step index)
-     */
     fun setActiveCookingSession(recipeId: String, stepIndex: Int) {
         prefs.edit()
             .putString(KEY_ACTIVE_COOKING_RECIPE_ID, recipeId)
@@ -41,15 +28,11 @@ class WidgetPreferences(context: Context) {
             .apply()
     }
 
-    /**
-     * Get active cooking session, or null if none exists or if session is stale (>24h)
-     */
     fun getActiveCookingSession(): CookingSession? {
         val recipeId = prefs.getString(KEY_ACTIVE_COOKING_RECIPE_ID, null) ?: return null
         val stepIndex = prefs.getInt(KEY_ACTIVE_COOKING_STEP_INDEX, 0)
         val timestamp = prefs.getLong(KEY_ACTIVE_COOKING_TIMESTAMP, 0)
 
-        // Check if session is stale (older than 24 hours)
         val currentTime = System.currentTimeMillis()
         val sessionAge = currentTime - timestamp
         if (sessionAge > SESSION_STALE_THRESHOLD) {
@@ -60,9 +43,6 @@ class WidgetPreferences(context: Context) {
         return CookingSession(recipeId, stepIndex, timestamp)
     }
 
-    /**
-     * Clear active cooking session
-     */
     fun clearCookingSession() {
         prefs.edit()
             .remove(KEY_ACTIVE_COOKING_RECIPE_ID)
@@ -71,10 +51,6 @@ class WidgetPreferences(context: Context) {
             .apply()
     }
 
-    /**
-     * Set the recipe ID that has active timers running
-     * This is separate from cooking session - timers keep running even when user navigates away
-     */
     fun setActiveTimerRecipe(recipeId: String) {
         android.util.Log.d("WidgetPreferences", "Setting active timer recipe: $recipeId")
         prefs.edit()
@@ -82,16 +58,10 @@ class WidgetPreferences(context: Context) {
             .apply()
     }
 
-    /**
-     * Get the recipe ID that has active timers running
-     */
     fun getActiveTimerRecipe(): String? {
         return prefs.getString(KEY_ACTIVE_TIMER_RECIPE_ID, null)
     }
 
-    /**
-     * Clear the active timer recipe (when all timers stop)
-     */
     fun clearActiveTimerRecipe() {
         android.util.Log.d("WidgetPreferences", "Clearing active timer recipe")
         prefs.edit()
@@ -99,32 +69,20 @@ class WidgetPreferences(context: Context) {
             .apply()
     }
 
-    /**
-     * Check if there's an active cooking session (not stale)
-     */
     fun hasActiveCookingSession(): Boolean {
         return getActiveCookingSession() != null
     }
 
-    /**
-     * Set cached random recipe ID and timestamp
-     * Used to avoid changing random recipe on every widget refresh
-     */
     fun setCachedRandomRecipe(recipeId: String) {
         prefs.edit()
             .putString(KEY_CACHED_RANDOM_RECIPE_ID, recipeId)
             .putLong(KEY_CACHED_RANDOM_TIMESTAMP, System.currentTimeMillis())
             .apply()
     }
-
-    /**
-     * Get cached random recipe ID, or null if cache is expired (>5 minutes)
-     */
     fun getCachedRandomRecipe(): String? {
         val recipeId = prefs.getString(KEY_CACHED_RANDOM_RECIPE_ID, null) ?: return null
         val timestamp = prefs.getLong(KEY_CACHED_RANDOM_TIMESTAMP, 0)
 
-        // Check if cache is expired (older than 5 minutes)
         val currentTime = System.currentTimeMillis()
         val cacheAge = currentTime - timestamp
         if (cacheAge > RANDOM_CACHE_DURATION) {
@@ -145,17 +103,12 @@ class WidgetPreferences(context: Context) {
         private const val KEY_CACHED_RANDOM_TIMESTAMP = "cached_random_timestamp"
         private const val KEY_ACTIVE_TIMER_RECIPE_ID = "active_timer_recipe_id"
 
-        // Session is considered stale after 24 hours
-        private const val SESSION_STALE_THRESHOLD = 24 * 60 * 60 * 1000L // 24 hours in milliseconds
+        private const val SESSION_STALE_THRESHOLD = 24 * 60 * 60 * 1000L
 
-        // Random recipe cache expires after 5 minutes
-        private const val RANDOM_CACHE_DURATION = 5 * 60 * 1000L // 5 minutes in milliseconds
+        private const val RANDOM_CACHE_DURATION = 5 * 60 * 1000L
     }
 }
 
-/**
- * Represents an active cooking session with recipe ID, current step, and timestamp
- */
 @Serializable
 data class CookingSession(
     val recipeId: String,

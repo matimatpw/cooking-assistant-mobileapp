@@ -12,13 +12,6 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.IOException
 
-/**
- * Utility class for installing bundled recipes from assets to internal storage.
- * This simulates downloading recipes from an API on first launch.
- *
- * Bundled recipes are stored in assets/recipes/bundled/ and copied to
- * internal storage on first app launch.
- */
 class BundledRecipesInstaller(private val context: Context) {
 
     companion object {
@@ -33,11 +26,6 @@ class BundledRecipesInstaller(private val context: Context) {
         private const val INTERNAL_MEDIA_DIR = "recipes/bundled/media"
     }
 
-    /**
-     * Checks if bundled recipes need to be installed and installs them if necessary.
-     *
-     * @return Result indicating success or failure
-     */
     suspend fun installBundledRecipesIfNeeded(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -65,20 +53,14 @@ class BundledRecipesInstaller(private val context: Context) {
         }
     }
 
-    /**
-     * Installs all bundled recipes and media from assets to internal storage.
-     */
     private suspend fun installBundledRecipes() {
-        // Create necessary directories
         val recipesDir = File(context.filesDir, INTERNAL_RECIPES_DIR)
         val mediaDir = File(context.filesDir, INTERNAL_MEDIA_DIR)
         recipesDir.mkdirs()
         mediaDir.mkdirs()
 
-        // Copy recipe JSON files
         copyAssetsDirectory(ASSETS_RECIPES_DIR, recipesDir)
 
-        // Copy media files if they exist
         try {
             val mediaAssetPath = "$ASSETS_RECIPES_DIR/media"
             context.assets.list(mediaAssetPath)?.let { mediaFiles ->
@@ -87,20 +69,12 @@ class BundledRecipesInstaller(private val context: Context) {
                 }
             }
         } catch (e: IOException) {
-            // Media directory might not exist in assets, which is fine
             Log.d(TAG, "No media files found in assets (this is normal)")
         }
 
-        // Build recipe index for the bundled recipes
         buildRecipeIndex()
     }
 
-    /**
-     * Recursively copies a directory from assets to internal storage.
-     *
-     * @param assetsPath Path in assets (e.g., "recipes/bundled")
-     * @param destDir Destination directory in internal storage
-     */
     private fun copyAssetsDirectory(assetsPath: String, destDir: File) {
         try {
             val files = context.assets.list(assetsPath) ?: return
@@ -109,7 +83,6 @@ class BundledRecipesInstaller(private val context: Context) {
                 val assetFilePath = "$assetsPath/$filename"
                 val destFile = File(destDir, filename)
 
-                // Check if it's a directory by trying to list its contents
                 val subFiles = try {
                     context.assets.list(assetFilePath)
                 } catch (e: IOException) {
@@ -117,11 +90,9 @@ class BundledRecipesInstaller(private val context: Context) {
                 }
 
                 if (subFiles != null && subFiles.isNotEmpty()) {
-                    // It's a directory, recurse
                     destFile.mkdirs()
                     copyAssetsDirectory(assetFilePath, destFile)
                 } else {
-                    // It's a file, copy it
                     copyAssetFile(assetFilePath, destFile)
                 }
             }
@@ -130,13 +101,6 @@ class BundledRecipesInstaller(private val context: Context) {
             throw e
         }
     }
-
-    /**
-     * Copies a single file from assets to internal storage.
-     *
-     * @param assetPath Path to file in assets
-     * @param destFile Destination file in internal storage
-     */
     private fun copyAssetFile(assetPath: String, destFile: File) {
         try {
             context.assets.open(assetPath).use { input ->
@@ -151,10 +115,6 @@ class BundledRecipesInstaller(private val context: Context) {
         }
     }
 
-    /**
-     * Forces reinstallation of bundled recipes.
-     * Useful for development/testing or when bundled recipes are updated.
-     */
     suspend fun forceReinstall(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             // Clear installation flag
@@ -178,10 +138,6 @@ class BundledRecipesInstaller(private val context: Context) {
         }
     }
 
-    /**
-     * Builds the recipe index by scanning bundled recipe files.
-     * This index is used by FileRecipeRepository for fast recipe lookups.
-     */
     private fun buildRecipeIndex() {
         try {
             val json = Json {
@@ -192,20 +148,17 @@ class BundledRecipesInstaller(private val context: Context) {
             val recipesDir = File(context.filesDir, INTERNAL_RECIPES_DIR)
             val indexFile = File(context.filesDir, "recipes/recipes_index.json")
 
-            // Find all recipe JSON files in the bundled directory
             val recipeFiles = recipesDir.listFiles { file ->
                 file.isFile && file.extension == "json"
             } ?: emptyArray()
 
             Log.d(TAG, "Found ${recipeFiles.size} recipe files to index")
 
-            // Parse each recipe file and create index entries
             val indexEntries = recipeFiles.mapNotNull { file ->
                 try {
                     val recipeJson = file.readText()
                     val recipe = json.decodeFromString<Recipe>(recipeJson)
 
-                    // Create index entry with relative path
                     val recipesBaseDir = File(context.filesDir, "recipes")
                     val relativePath = file.relativeTo(recipesBaseDir).path
 
@@ -223,7 +176,6 @@ class BundledRecipesInstaller(private val context: Context) {
                 }
             }
 
-            // Create and save the index
             val index = RecipeIndex(
                 version = 1,
                 lastUpdated = System.currentTimeMillis(),
