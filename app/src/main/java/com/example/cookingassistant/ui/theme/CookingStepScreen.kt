@@ -115,6 +115,7 @@ fun CookingStepScreen(
     var cookingInitialized by remember { mutableStateOf(false) }
 
     // Target step index - determined after checking timers
+    // This is set BEFORE cookingInitialized so pager can be created with correct initial page
     var targetStepIndex by remember { mutableStateOf<Int?>(null) }
 
     // Timer state
@@ -133,12 +134,6 @@ fun CookingStepScreen(
 
     // Flag to prevent circular updates between pager and ViewModel
     var isUpdatingFromViewModel by remember { mutableStateOf(false) }
-
-    // Pager state for swipe navigation
-    val pagerState = rememberPagerState(
-        initialPage = initialStepIndex.coerceIn(0, recipe.steps.size - 1),
-        pageCount = { recipe.steps.size }
-    )
 
     // Permission launchers
     var hasRecordPermission by remember { mutableStateOf(false) }
@@ -220,8 +215,7 @@ fun CookingStepScreen(
                     initialStepIndex
                 }
                 targetStepIndex = computedTargetStep
-                // Scroll pager immediately to avoid visual jump
-                pagerState.scrollToPage(computedTargetStep)
+                // Pager will be created with correct initial page via targetStepIndex
                 viewModel.startOrResumeCookingMode(recipe, computedTargetStep)
                 cookingInitialized = true
             }
@@ -314,22 +308,6 @@ fun CookingStepScreen(
             step?.let {
                 ttsManager.speakInstruction(it.instruction)
             }
-        }
-    }
-
-    // Sync pager with ViewModel (user swipes) - only after initialization
-    LaunchedEffect(pagerState.currentPage, cookingInitialized) {
-        if (cookingInitialized && !isUpdatingFromViewModel && pagerState.currentPage != currentStepIndex) {
-            viewModel.goToStep(pagerState.currentPage)
-        }
-    }
-
-    // Sync ViewModel with pager (voice commands or programmatic navigation) - only after initialization
-    LaunchedEffect(currentStepIndex, cookingInitialized) {
-        if (cookingInitialized && pagerState.currentPage != currentStepIndex) {
-            isUpdatingFromViewModel = true
-            pagerState.scrollToPage(currentStepIndex)
-            isUpdatingFromViewModel = false
         }
     }
 
@@ -512,16 +490,51 @@ fun CookingStepScreen(
             )
 
             // Horizontal pager for step navigation
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-            ) { page ->
-                CookingStepContent(
-                    step = recipe.steps[page],
-                    totalSteps = recipe.steps.size
+            // Only show when initialized to avoid visual jump from initial page to target page
+            if (cookingInitialized && targetStepIndex != null) {
+                // Create pager state here so it's initialized with the correct page
+                val pagerState = rememberPagerState(
+                    initialPage = targetStepIndex!!.coerceIn(0, recipe.steps.size - 1),
+                    pageCount = { recipe.steps.size }
                 )
+
+                // Sync pager with ViewModel (user swipes)
+                LaunchedEffect(pagerState.currentPage) {
+                    if (!isUpdatingFromViewModel && pagerState.currentPage != currentStepIndex) {
+                        viewModel.goToStep(pagerState.currentPage)
+                    }
+                }
+
+                // Sync ViewModel with pager (voice commands or programmatic navigation)
+                LaunchedEffect(currentStepIndex) {
+                    if (pagerState.currentPage != currentStepIndex) {
+                        isUpdatingFromViewModel = true
+                        pagerState.scrollToPage(currentStepIndex)
+                        isUpdatingFromViewModel = false
+                    }
+                }
+
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                ) { page ->
+                    CookingStepContent(
+                        step = recipe.steps[page],
+                        totalSteps = recipe.steps.size
+                    )
+                }
+            } else {
+                // Loading placeholder while determining target step
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
             }
 
             // Navigation hints
@@ -565,10 +578,7 @@ fun CookingStepScreen(
                 viewModel.restoreTimerStateFromService(recipe.id)
                 val computedTargetStep = findStepWithLowestTimer()
                 targetStepIndex = computedTargetStep
-                // Scroll pager immediately to avoid visual jump
-                scope.launch {
-                    pagerState.scrollToPage(computedTargetStep)
-                }
+                // Pager will be created with correct initial page via targetStepIndex
                 viewModel.startOrResumeCookingMode(recipe, computedTargetStep)
                 cookingInitialized = true
             },
@@ -589,6 +599,7 @@ fun CookingStepScreen(
                 showDifferentRecipeDialog = false
                 // Stop all existing timers from other recipe and start this one
                 viewModel.exitCookingMode() // This clears all timers
+                targetStepIndex = initialStepIndex
                 viewModel.startCookingMode(recipe, initialStepIndex)
                 cookingInitialized = true
             },
